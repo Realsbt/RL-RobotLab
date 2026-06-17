@@ -1,0 +1,14 @@
+# Debug
+mytest*
+debug*
+
+# Python
+*.egg-info
+__pycache__/
+
+# Logger
+logs/
+logs*/
+.aim/
+*.bkp
+.vscode/

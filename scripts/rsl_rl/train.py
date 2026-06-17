@@ -117,6 +117,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     agent_cfg_dict["robogauge"] = {
         "enabled": args_cli.robogauge,
         "port": args_cli.robogauge_port,
+        "task_name": args_cli.robogauge_task,
     }
     env_cfg.scene.num_envs = args_cli.num_envs if args_cli.num_envs is not None else env_cfg.scene.num_envs
     agent_cfg.max_iterations = (

@@ -83,6 +83,9 @@ def add_rsl_rl_args(parser: argparse.ArgumentParser):
     arg_group.add_argument(
         "--robogauge_port", type=int, default=9973, help="Port for robogauge evaluation interface."
     )
+    arg_group.add_argument(
+        "--robogauge_task", type=str, default="go2_lab", help="RoboGauge task prefix to evaluate, for example go2_lab or dmbot."
+    )
 
 
 def parse_rsl_rl_cfg(task_name: str, args_cli: argparse.Namespace) -> RslRlBaseRunnerCfg:

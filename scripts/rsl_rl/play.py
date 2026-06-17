@@ -46,6 +46,13 @@ parser.add_argument(
 parser.add_argument("--real-time", action="store_true", default=False, help="Run in real-time, if possible.")
 parser.add_argument("--keyboard", action="store_true", default=False, help="Whether to use keyboard.")
 parser.add_argument("--fix_commands", action="store_true", default=False, help="Fix the velocity commands.")
+parser.add_argument("--no-camera-follow", action="store_true", default=False, help="Disable camera follow during play.")
+parser.add_argument(
+    "--terrain-level",
+    type=str,
+    default=None,
+    help="Force playback terrain level row, e.g. 9 for highest difficulty, or use --terrain-level all to spread levels.",
+)
 # append RSL-RL cli arguments
 cli_args.add_rsl_rl_args(parser)
 # append AppLauncher cli args
@@ -66,6 +73,7 @@ simulation_app = app_launcher.app
 """Rest everything follows."""
 
 import gymnasium as gym
+import math
 import time
 import torch
 # from scripts.reinforcement_learning.utils import camera_follow
@@ -120,6 +128,74 @@ def fix_commands(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvC
     if hasattr(env_cfg, "curriculum") and hasattr(env_cfg.curriculum, "terrain_levels"):
         env_cfg.curriculum.terrain_levels = None
 
+
+def camera_follow(env, env_index: int = 0) -> None:
+    """Keep the viewport camera close to the first robot during play."""
+    try:
+        robot = env.unwrapped.scene["robot"]
+        base_pos = robot.data.root_pos_w[env_index].detach().cpu().tolist()
+        target = [base_pos[0], base_pos[1], base_pos[2] + 0.15]
+        eye = [base_pos[0] - 2.0, base_pos[1] - 2.4, base_pos[2] + 1.0]
+        env.unwrapped.sim.set_camera_view(eye=eye, target=target)
+    except Exception as exc:
+        if not getattr(camera_follow, "_warned", False):
+            print(f"[PLAY] Camera follow skipped: {exc}", flush=True)
+            camera_follow._warned = True
+
+
+def camera_overview(env) -> None:
+    """Place the viewport camera once so many environments are visible."""
+    try:
+        scene = env.unwrapped.scene
+        env_origins = getattr(scene, "env_origins", None)
+        if env_origins is not None:
+            origins = env_origins.detach().cpu()
+            center_xy = origins[:, :2].mean(dim=0)
+            min_xy = origins[:, :2].min(dim=0).values
+            max_xy = origins[:, :2].max(dim=0).values
+            span = float(torch.max(max_xy - min_xy).item())
+            center = [float(center_xy[0]), float(center_xy[1]), 0.0]
+        else:
+            num_envs = int(getattr(env.unwrapped, "num_envs", 1))
+            spacing = float(getattr(getattr(env.unwrapped.cfg, "scene", None), "env_spacing", 1.0))
+            cols = max(1, math.ceil(math.sqrt(num_envs)))
+            rows = max(1, math.ceil(num_envs / cols))
+            center = [(cols - 1) * spacing * 0.5, (rows - 1) * spacing * 0.5, 0.0]
+            span = max(cols, rows) * spacing
+
+        distance = max(8.0, span * 1.15)
+        eye = [center[0] - distance * 0.6, center[1] - distance * 0.8, distance * 0.65]
+        target = [center[0], center[1], center[2]]
+        env.unwrapped.sim.set_camera_view(eye=eye, target=target)
+        print("[PLAY] Camera follow disabled; overview camera set once.", flush=True)
+    except Exception as exc:
+        print(f"[PLAY] Overview camera skipped: {exc}", flush=True)
+
+
+def force_terrain_level(env, terrain_level_spec: str) -> None:
+    """Force or spread playback environments across terrain difficulty levels."""
+    terrain = getattr(env.unwrapped.scene, "terrain", None)
+    if terrain is None or getattr(terrain, "terrain_origins", None) is None:
+        print("[PLAY] Terrain level override skipped: no curriculum terrain origins found.", flush=True)
+        return
+
+    max_level = int(terrain.terrain_origins.shape[0] - 1)
+    if terrain_level_spec == "all":
+        env_ids = torch.arange(terrain.terrain_levels.numel(), device=terrain.terrain_levels.device)
+        terrain.terrain_levels[:] = env_ids % (max_level + 1)
+        terrain.env_origins[:] = terrain.terrain_origins[terrain.terrain_levels, terrain.terrain_types]
+        print(f"[PLAY] Spread playback across terrain levels 0-{max_level}.", flush=True)
+        return
+
+    terrain_level = int(terrain_level_spec)
+    if terrain_level < 0 or terrain_level > max_level:
+        raise ValueError(f"--terrain-level must be in [0, {max_level}], got {terrain_level}.")
+
+    terrain.terrain_levels[:] = terrain_level
+    terrain.env_origins[:] = terrain.terrain_origins[terrain.terrain_levels, terrain.terrain_types]
+    print(f"[PLAY] Forced playback terrain level to {terrain_level}/{max_level}.", flush=True)
+
+
 @hydra_task_config(args_cli.task, args_cli.agent)
 def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
     """Play with RSL-RL agent."""
@@ -166,6 +242,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # fix velocity commands if specified
     if args_cli.fix_commands:
         fix_commands(env_cfg)
+    if args_cli.terrain_level is not None and hasattr(env_cfg, "curriculum"):
+        env_cfg.curriculum.terrain_levels = None
 
     # create isaac environment
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
@@ -173,6 +251,10 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # convert to single-agent instance if required by the RL algorithm
     if isinstance(env.unwrapped, DirectMARLEnv):
         env = multi_agent_to_single_agent(env)
+
+    if args_cli.terrain_level is not None:
+        force_terrain_level(env, args_cli.terrain_level)
+        env.reset()
 
     # wrap for video recording
     if args_cli.video:
@@ -238,6 +320,10 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # env.unwrapped.eye = (1.1, 3.3, 0.9)
     # reset environment
     obs = env.get_observations()
+    if args_cli.no_camera_follow:
+        camera_overview(env)
+    else:
+        camera_follow(env)
     timestep = 0
     # simulate environment
     while simulation_app.is_running():
@@ -252,7 +338,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
             policy_nn.reset(dones)
         if args_cli.video:
             writer.append_data(env.env.render())
-        # camera_follow(env)
+        if not args_cli.no_camera_follow:
+            camera_follow(env)
 
         # time delay for real-time evaluation
         sleep_time = dt - (time.time() - start_time)

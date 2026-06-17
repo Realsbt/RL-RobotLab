@@ -76,8 +76,10 @@ class OnPolicyRunnerCTS:
         self.current_learning_iteration = 0
 
         # robogauge client
+        self.robogauge_task_name = "go2_lab"
         try:
             robogauge_cfg = train_cfg.get("robogauge", {})
+            self.robogauge_task_name = robogauge_cfg.get("task_name", "go2_lab")
             if not robogauge_cfg.get("enabled", False):
                 raise ImportError("config disabled")
             from robogauge.scripts.client import RoboGaugeClient
@@ -204,7 +206,7 @@ class OnPolicyRunnerCTS:
                 self.robogauge_client.submit_task(
                     model_path=jit_path,
                     step=it,
-                    task_name="go2_lab",
+                    task_name=self.robogauge_task_name,
                     experiment_name=self.cfg["experiment_name"],
                 )
         except Exception as e:
