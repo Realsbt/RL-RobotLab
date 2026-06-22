@@ -46,6 +46,7 @@ def load_config(config_name: str):
         "save_video": bool(raw.get("save_video", False)),
         "render_fps": int(raw.get("render_fps", 60)),
         "video_fps": int(raw.get("video_fps", 50)),
+        "terrain_profile": str(raw.get("terrain_profile", "flat")),
     }
     if data["delay_min"] < 0 or data["delay_max"] < data["delay_min"]:
         raise ValueError(f"Invalid actuator delay range: min={data['delay_min']}, max={data['delay_max']}.")

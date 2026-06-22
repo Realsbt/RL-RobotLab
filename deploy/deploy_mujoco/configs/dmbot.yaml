@@ -1,0 +1,72 @@
+policy_path: "{ROOT_DIR}/logs/rsl_rl/dmbot_moe_cts/2026-06-18_18-53-05_dmbot_smooth_speed_from_scratch_200000_6144envs/exported/policy.pt"
+xml_path: "{ROOT_DIR}/external/RoboGauge/resources/robots/dmbot/dmbot.xml"
+terrain_profile: "training_mixed"
+
+render_fps: 60
+video_fps: 60
+save_video: false
+
+simulation_duration: 60000000.0
+simulation_dt: 0.005
+control_decimation: 4
+base_init_pos: [0.0, 0.0, 0.35]
+base_init_quat: [1.0, 0.0, 0.0, 0.0]
+
+# The current deploy delay buffer is applied at policy-step granularity, not
+# IsaacLab physics-step granularity, so leave it off for the first DMBot pass.
+actuator_delay_min: 0
+actuator_delay_max: 0
+actuator_delay_seed: 0
+
+kps: [40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0]
+kds: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+
+default_angles: [
+  0.0, -0.8, -1.5,
+  0.0,  0.8,  1.5,
+  0.0, -1.0, -1.5,
+  0.0,  1.0,  1.5,
+]
+
+lin_vel_scale: 2.0
+ang_vel_scale: 0.25
+dof_pos_scale: 1.0
+dof_vel_scale: 0.05
+action_pos_scale: 0.25
+cmd_scale: [1.0, 1.0, 1.0]
+num_actions: 12
+num_obs: 45
+max_cmd: [1.0, 0.8, 1.0]
+
+cmd_init: [0.0, 0.0, 0.0]
+history_len: 10
+
+mujoco_joint_names: [
+  "Jfl1_hipr",
+  "Jfl2_hipp",
+  "Jfl3_knee",
+  "Jfr1_hipr",
+  "Jfr2_hipp",
+  "Jfr3_knee",
+  "Jrl1_hipr",
+  "Jrl2_hipp",
+  "Jrl3_knee",
+  "Jrr1_hipr",
+  "Jrr2_hipp",
+  "Jrr3_knee",
+]
+
+model_joint_names: [
+  "Jfl1_hipr",
+  "Jfl2_hipp",
+  "Jfl3_knee",
+  "Jfr1_hipr",
+  "Jfr2_hipp",
+  "Jfr3_knee",
+  "Jrl1_hipr",
+  "Jrl2_hipp",
+  "Jrl3_knee",
+  "Jrr1_hipr",
+  "Jrr2_hipp",
+  "Jrr3_knee",
+]

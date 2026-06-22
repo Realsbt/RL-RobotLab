@@ -85,7 +85,7 @@ def test_dmbot_terrain_matches_go2_original_strategy():
     assert '"random_rough": terrain_gen.HfRandomUniformTerrainCfg(' not in active_cfg
 
 
-def test_dmbot_command_curriculum_matches_go2_original_strategy():
+def test_dmbot_command_curriculum_matches_smoothed_go2_targets_strategy():
     command_text = (TASK_DIR / "mdp" / "commands.py").read_text()
 
     assert "Ranges:" in command_text
@@ -94,10 +94,18 @@ def test_dmbot_command_curriculum_matches_go2_original_strategy():
     assert "ang_vel_yaw: tuple[float, float] = [-1.0, 1.0]" in command_text
     for expected in (
         "'iter': 20000",
+        "'lin_vel_x': [-0.75, 0.75]",
+        "'lin_vel_y': [-0.75, 0.75]",
+        "'ang_vel_yaw': [-1.25, 1.25]",
+        "'iter': 35000",
         "'lin_vel_x': [-1.0, 1.0]",
         "'lin_vel_y': [-1.0, 1.0]",
         "'ang_vel_yaw': [-1.5, 1.5]",
-        "'iter': 50000",
+        "'iter': 60000",
+        "'lin_vel_x': [-1.5, 1.5]",
+        "'lin_vel_y': [-1.0, 1.0]",
+        "'ang_vel_yaw': [-1.75, 1.75]",
+        "'iter': 100000",
         "'lin_vel_x': [-2.0, 2.0]",
         "'lin_vel_y': [-1.0, 1.0]",
         "'ang_vel_yaw': [-2.0, 2.0]",
@@ -106,7 +114,7 @@ def test_dmbot_command_curriculum_matches_go2_original_strategy():
     assert "'iter': 2000," not in command_text
     assert "'iter': 8000," not in command_text
     assert "'iter': 5000," not in command_text
-    assert "'iter': 35000" not in command_text
+    assert "'iter': 50000" not in command_text
     assert (
         "zero_command_curriculum: dict = "
         "{'start_iter': 0, 'end_iter': 1500, 'start_value': 0.0, 'end_value': 0.1}"

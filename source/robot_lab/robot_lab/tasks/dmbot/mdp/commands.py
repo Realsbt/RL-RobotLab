@@ -368,11 +368,21 @@ class Go2RLGymCommandCfg(CommandTermCfg):
     """Sample vel commands from min [-1] or zero [0] or max [1] range only"""
     command_range_curriculum: list[dict] = [{
         'iter': 20000, # training iteration at which the command ranges are updated
+        'lin_vel_x': [-0.75, 0.75], # min max [m/s]
+        'lin_vel_y': [-0.75, 0.75], # min max [m/s]
+        'ang_vel_yaw': [-1.25, 1.25], # min max [rad/s]
+    }, {
+        'iter': 35000, # training iteration at which the command ranges are updated
         'lin_vel_x': [-1.0, 1.0], # min max [m/s]
         'lin_vel_y': [-1.0, 1.0], # min max [m/s]
         'ang_vel_yaw': [-1.5, 1.5], # min max [rad/s]
     }, {
-        'iter': 50000, # training iteration at which the command ranges are updated
+        'iter': 60000, # training iteration at which the command ranges are updated
+        'lin_vel_x': [-1.5, 1.5], # min max [m/s]
+        'lin_vel_y': [-1.0, 1.0], # min max [m/s]
+        'ang_vel_yaw': [-1.75, 1.75], # min max [rad/s]
+    }, {
+        'iter': 100000, # training iteration at which the command ranges are updated
         'lin_vel_x': [-2.0, 2.0], # min max [m/s]
         'lin_vel_y': [-1.0, 1.0], # min max [m/s]
         'ang_vel_yaw': [-2.0, 2.0], # min max [rad/s]
