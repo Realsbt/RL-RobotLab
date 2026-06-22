@@ -1,4 +1,4 @@
-policy_path: "{ROOT_DIR}/logs/rsl_rl/dmbot_moe_cts/2026-06-18_18-53-05_dmbot_smooth_speed_from_scratch_200000_6144envs/exported/policy.pt"
+policy_path: "{ROOT_DIR}/deploy/pre_train/dmbot/smooth_speed_200k_6144envs/exported/policy.pt"
 xml_path: "{ROOT_DIR}/external/RoboGauge/resources/robots/dmbot/dmbot.xml"
 terrain_profile: "training_mixed"
 
