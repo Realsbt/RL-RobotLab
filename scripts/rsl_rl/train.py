@@ -37,6 +37,24 @@ parser.add_argument(
 parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment")
 parser.add_argument("--max_iterations", type=int, default=None, help="RL Policy training iterations.")
 parser.add_argument(
+    "--pretrained_checkpoint",
+    type=str,
+    default=None,
+    help="Initialize policy weights from an exact checkpoint path without restoring optimizer or iteration state.",
+)
+parser.add_argument(
+    "--pretrained_actor_only",
+    action="store_true",
+    default=False,
+    help="Keep the new critic initialization when transferring from a checkpoint with a different reward.",
+)
+parser.add_argument(
+    "--pretrained_action_std",
+    type=float,
+    default=None,
+    help="Reset state-independent exploration standard deviation after loading a pretrained checkpoint.",
+)
+parser.add_argument(
     "--distributed", action="store_true", default=False, help="Run training with multiple GPUs or nodes."
 )
 parser.add_argument("--export_io_descriptors", action="store_true", default=False, help="Export IO descriptors.")
@@ -111,6 +129,15 @@ torch.backends.cudnn.benchmark = False
 @hydra_task_config(args_cli.task, args_cli.agent)
 def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
     """Train with RSL-RL agent."""
+    if args_cli.resume and args_cli.pretrained_checkpoint is not None:
+        raise ValueError("Use either --resume or --pretrained_checkpoint, not both.")
+    if args_cli.pretrained_actor_only and args_cli.pretrained_checkpoint is None:
+        raise ValueError("--pretrained_actor_only requires --pretrained_checkpoint.")
+    if args_cli.pretrained_action_std is not None:
+        if args_cli.pretrained_checkpoint is None:
+            raise ValueError("--pretrained_action_std requires --pretrained_checkpoint.")
+        if args_cli.pretrained_action_std <= 0.0:
+            raise ValueError("--pretrained_action_std must be positive.")
     # override configurations with non-hydra CLI arguments
     agent_cfg = cli_args.update_rsl_rl_cfg(agent_cfg, args_cli)
     agent_cfg_dict = agent_cfg.to_dict()
@@ -203,6 +230,61 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         runner = OnPolicyRunnerCTS(env, agent_cfg_dict, log_dir=log_dir, device=agent_cfg.device)
     else:
         raise ValueError(f"Unsupported runner class: {agent_cfg.class_name}")
+
+    if args_cli.pretrained_checkpoint is not None:
+        pretrained_path = os.path.abspath(os.path.expanduser(args_cli.pretrained_checkpoint))
+        if not os.path.isfile(pretrained_path):
+            raise FileNotFoundError(f"Pretrained checkpoint does not exist: {pretrained_path}")
+        policy_module = runner.alg.policy
+        fresh_critic_state = None
+        fresh_critic_normalizer_state = None
+        if args_cli.pretrained_actor_only:
+            if not hasattr(policy_module, "critic"):
+                raise AttributeError("The selected policy has no separable critic for actor-only transfer.")
+            fresh_critic_state = {
+                name: value.detach().clone()
+                for name, value in policy_module.critic.state_dict().items()
+            }
+            critic_normalizer = getattr(policy_module, "critic_obs_normalizer", None)
+            if critic_normalizer is not None:
+                fresh_critic_normalizer_state = {
+                    name: value.detach().clone()
+                    for name, value in critic_normalizer.state_dict().items()
+                }
+        print(f"[INFO]: Initializing policy weights from: {pretrained_path}")
+        runner.load(pretrained_path, load_optimizer=False)
+        if fresh_critic_state is not None:
+            policy_module.critic.load_state_dict(fresh_critic_state)
+            if fresh_critic_normalizer_state is not None:
+                policy_module.critic_obs_normalizer.load_state_dict(
+                    fresh_critic_normalizer_state
+                )
+            print("[INFO]: Retained freshly initialized critic for reward transfer.")
+        if args_cli.pretrained_action_std is not None:
+            with torch.no_grad():
+                if getattr(policy_module, "state_dependent_std", False):
+                    raise ValueError(
+                        "--pretrained_action_std does not support state-dependent action noise."
+                    )
+                if hasattr(policy_module, "std"):
+                    policy_module.std.fill_(args_cli.pretrained_action_std)
+                elif hasattr(policy_module, "log_std"):
+                    policy_module.log_std.fill_(
+                        torch.log(
+                            torch.tensor(
+                                args_cli.pretrained_action_std,
+                                device=policy_module.log_std.device,
+                            )
+                        )
+                    )
+                else:
+                    raise AttributeError("Unable to locate the policy action-noise parameter.")
+            print(
+                "[INFO]: Reset pretrained action noise std to "
+                f"{args_cli.pretrained_action_std:.3f}."
+            )
+        runner.current_learning_iteration = 0
+        print("[INFO]: Optimizer state and learning iteration were not restored.")
     # write git state to logs
     runner.add_git_repo_to_log(__file__)
     # load the checkpoint
@@ -210,13 +292,35 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         print(f"[INFO]: Loading model checkpoint from: {resume_path}")
         # load previously trained model
         runner.load(resume_path)
+        # The environment counter is not part of the RSL-RL checkpoint.  Restore it from
+        # the runner iteration so command/reward curricula continue from the checkpoint
+        # instead of restarting at their iteration-zero settings.
+        base_velocity_cfg = getattr(env.unwrapped.cfg.commands, "base_velocity", None)
+        steps_per_iteration = getattr(base_velocity_cfg, "num_steps_per_iter", None)
+        if steps_per_iteration is None:
+            steps_per_iteration = agent_cfg.num_steps_per_env
+        env.unwrapped.common_step_counter = runner.current_learning_iteration * steps_per_iteration
+        # The wrapper reset happened before the checkpoint was loaded, so its commands
+        # were sampled from the iteration-zero range. Resample them at the restored
+        # counter to make the very first rollout use the correct curriculum stage.
+        env_ids = torch.arange(env.unwrapped.num_envs, device=env.unwrapped.device)
+        env.unwrapped.command_manager.reset(env_ids=env_ids)
+        print(
+            "[INFO]: Restored environment curriculum counter to "
+            f"{env.unwrapped.common_step_counter} "
+            f"({runner.current_learning_iteration} learning iterations)."
+        )
 
     # dump the configuration into log-directory
     dump_yaml(os.path.join(log_dir, "params", "env.yaml"), env_cfg)
     dump_yaml(os.path.join(log_dir, "params", "agent.yaml"), agent_cfg)
     sys.stdout = Logger(os.path.join(log_dir, "train.log"))
     # run training
-    runner.learn(num_learning_iterations=agent_cfg.max_iterations, init_at_random_ep_len=True)
+    init_at_random_ep_len = getattr(env.unwrapped.cfg, "randomize_initial_episode_length", True)
+    runner.learn(
+        num_learning_iterations=agent_cfg.max_iterations,
+        init_at_random_ep_len=init_at_random_ep_len,
+    )
 
     # close the simulator
     env.close()

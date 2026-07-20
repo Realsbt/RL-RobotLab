@@ -38,7 +38,13 @@ class PhysicalMotor(DelayedPDActuator):
             raise ValueError("saturation_effort must be set for PhysicalMotor.")
 
         self._saturation_effort = cfg.saturation_effort
-        self._filter_tau = cfg.filter_tau
+        filter_tau_range = cfg.filter_tau_range
+        if filter_tau_range is None:
+            filter_tau_range = (cfg.filter_tau, cfg.filter_tau)
+        if filter_tau_range[0] < 0.0 or filter_tau_range[1] < filter_tau_range[0]:
+            raise ValueError(f"Invalid filter_tau_range: {filter_tau_range}")
+        self._filter_tau_range = filter_tau_range
+        self._filter_enabled = filter_tau_range[1] > 0.0
 
         # corner velocity: where the torque-speed curve crosses effort_limit
         self._vel_at_effort_lim = self.velocity_limit * (1.0 + self.effort_limit / self._saturation_effort)
@@ -46,15 +52,30 @@ class PhysicalMotor(DelayedPDActuator):
         # buffer for filtered torque, initialized to zero
         self._filtered_effort = torch.zeros_like(self.computed_effort)
 
-        # pre-compute filter alpha from cfg
-        if cfg.filter_tau > 0.0:
-            self._filter_alpha = cfg.physics_dt / (cfg.filter_tau + cfg.physics_dt)
-        else:
-            self._filter_alpha = 1.0
+        # One motor response constant is sampled per environment and actuator group.
+        self._filter_tau = torch.zeros((self._num_envs, 1), device=self._device)
+        self._filter_alpha = torch.ones_like(self._filter_tau)
+        self._resample_filter_tau(slice(None))
 
     def reset(self, env_ids: Sequence[int]):
         super().reset(env_ids)
         self._filtered_effort[env_ids] = 0.0
+        self._resample_filter_tau(env_ids)
+
+    def _resample_filter_tau(self, env_ids: Sequence[int] | slice) -> None:
+        if env_ids is None or env_ids == slice(None):
+            env_ids = slice(None)
+            num_envs = self._num_envs
+        else:
+            num_envs = len(env_ids)
+
+        tau_min, tau_max = self._filter_tau_range
+        if tau_min == tau_max:
+            sampled_tau = torch.full((num_envs, 1), tau_min, device=self._device)
+        else:
+            sampled_tau = torch.empty((num_envs, 1), device=self._device).uniform_(tau_min, tau_max)
+        self._filter_tau[env_ids] = sampled_tau
+        self._filter_alpha[env_ids] = self.cfg.physics_dt / (sampled_tau + self.cfg.physics_dt)
 
     def compute(
         self, control_action: ArticulationActions, joint_pos: torch.Tensor, joint_vel: torch.Tensor
@@ -69,7 +90,7 @@ class PhysicalMotor(DelayedPDActuator):
         torque = control_action.joint_efforts
 
         # apply first-order low-pass filter if tau > 0
-        if self._filter_tau > 0.0:
+        if self._filter_enabled:
             self._filtered_effort = self._filter_alpha * torque + (1.0 - self._filter_alpha) * self._filtered_effort
             control_action.joint_efforts = self._filtered_effort.clone()
 
@@ -103,6 +124,13 @@ class PhysicalMotorCfg(DelayedPDActuatorCfg):
     filter_tau: float = 0.0
     """Time constant for first-order low-pass filter on output torque (seconds).
     Set to 0.0 to disable. For DM-J10010-2EC: ~0.005 s.
+    """
+
+    filter_tau_range: tuple[float, float] | None = None
+    """Optional per-episode response time-constant range in seconds.
+
+    When set, this overrides ``filter_tau`` and samples one value per environment and
+    actuator group at reset.
     """
 
     physics_dt: float = 0.005

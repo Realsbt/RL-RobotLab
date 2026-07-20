@@ -265,6 +265,50 @@ def _add_training_mixed_terrain(worldbody: ET.Element) -> None:
             worldbody.append(geom)
 
 
+def build_scene_with_training_terrain_xml(
+    source_xml: str | Path,
+    output_xml: str | Path,
+    *,
+    terrain_profile: str = "flat",
+) -> Path:
+    """Create a temporary MuJoCo scene with the shared deployment terrain added."""
+    source_xml = Path(source_xml).resolve()
+    output_xml = Path(output_xml).resolve()
+
+    tree = ET.parse(source_xml)
+    root = tree.getroot()
+
+    option = root.find("option")
+    if option is None:
+        option = ET.Element("option")
+        root.insert(1, option)
+    option.set("timestep", "0.005")
+    option.set("gravity", "0 0 -9.81")
+
+    for model_asset in root.findall("./asset/model"):
+        model_file = model_asset.get("file")
+        if model_file:
+            model_path = Path(model_file)
+            if not model_path.is_absolute():
+                model_asset.set("file", str((source_xml.parent / model_path).resolve()))
+
+    _add_scene_visuals(root)
+
+    worldbody = root.find("worldbody")
+    if worldbody is None:
+        raise ValueError(f"Missing <worldbody> in MuJoCo scene: {source_xml}")
+
+    _add_floor_and_light(worldbody)
+    if terrain_profile == "training_mixed":
+        _add_training_mixed_terrain(worldbody)
+    elif terrain_profile != "flat":
+        raise ValueError(f"Unsupported MuJoCo terrain profile: {terrain_profile}")
+
+    output_xml.parent.mkdir(parents=True, exist_ok=True)
+    tree.write(output_xml, encoding="utf-8", xml_declaration=True)
+    return output_xml
+
+
 def build_dmbot_scene_xml(
     source_xml: str | Path,
     output_xml: str | Path,

@@ -1,0 +1,2 @@
+Units Standard,Orientation Format,Orientation Euler Unit,Inertia Format,Inertia Orientation Format,Inertia Euler Unit,Revolute Joint Range Unit,Revolute Joint Velocity Unit,Linear Joint Range Unit,Linear Joint Velocity Unit
+meter.kilogram,static_roll_pitch_yaw,radian,full_negative_notation,static_roll_pitch_yaw,radian,degree,revolutions_per_minute,meter,meters_per_second

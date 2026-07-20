@@ -44,8 +44,20 @@ parser.add_argument(
     help="Use the pre-trained checkpoint from Nucleus.",
 )
 parser.add_argument("--real-time", action="store_true", default=False, help="Run in real-time, if possible.")
+parser.add_argument(
+    "--max_steps",
+    type=int,
+    default=None,
+    help="Stop after this many policy steps. Useful for finite headless evaluation.",
+)
 parser.add_argument("--keyboard", action="store_true", default=False, help="Whether to use keyboard.")
 parser.add_argument("--fix_commands", action="store_true", default=False, help="Fix the velocity commands.")
+parser.add_argument(
+    "--quiet-noise-vis",
+    action="store_true",
+    default=False,
+    help="Visualize the MUTE per-foot impact-noise proxy (not acoustic dB).",
+)
 parser.add_argument("--no-camera-follow", action="store_true", default=False, help="Disable camera follow during play.")
 parser.add_argument(
     "--terrain-level",
@@ -53,12 +65,30 @@ parser.add_argument(
     default=None,
     help="Force playback terrain level row, e.g. 9 for highest difficulty, or use --terrain-level all to spread levels.",
 )
+parser.add_argument(
+    "--export-only",
+    action="store_true",
+    default=False,
+    help="Export the checkpoint to TorchScript and ONNX, then exit without entering the simulation loop.",
+)
+parser.add_argument(
+    "--export-name",
+    type=str,
+    default="policy",
+    help="Base filename for exported models, without an extension.",
+)
 # append RSL-RL cli arguments
 cli_args.add_rsl_rl_args(parser)
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
 args_cli, hydra_args = parser.parse_known_args()
+if not args_cli.export_name or os.path.basename(args_cli.export_name) != args_cli.export_name:
+    parser.error("--export-name must be a non-empty filename without directory components.")
+if args_cli.export_name.endswith((".pt", ".onnx")):
+    parser.error("--export-name must not include a .pt or .onnx extension.")
+if args_cli.max_steps is not None and args_cli.max_steps <= 0:
+    parser.error("--max_steps must be positive.")
 # always enable cameras to record video
 if args_cli.video:
     args_cli.enable_cameras = True
@@ -106,6 +136,16 @@ def fix_commands(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvC
 
     base_velocity_cfg = getattr(getattr(env_cfg, "commands", None), "base_velocity", None)
     if base_velocity_cfg is None:
+        return
+
+    # Keep the MUTE command class so its impact diagnostics and visualization remain active.
+    if hasattr(base_velocity_cfg, "noise_marker_cfg"):
+        base_velocity_cfg.ranges.lin_vel_x = (fixed_lin_x, fixed_lin_x)
+        base_velocity_cfg.ranges.lin_vel_y = (fixed_lin_y, fixed_lin_y)
+        base_velocity_cfg.ranges.ang_vel_z = (fixed_ang_z, fixed_ang_z)
+        base_velocity_cfg.heading_command = False
+        base_velocity_cfg.rel_standing_envs = 0.0
+        base_velocity_cfg.rel_heading_envs = 0.0
         return
 
     fixed_cfg = UniformVelocityCommandCfg(
@@ -211,13 +251,24 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     env_cfg.seed = agent_cfg.seed
     env_cfg.sim.device = args_cli.device if args_cli.device is not None else env_cfg.sim.device
 
-    # disable randomization for play
-    env_cfg.observations.policy.enable_corruption = False
-    # remove random pushing
-    env_cfg.events.randomize_apply_external_force_torque = None
-    env_cfg.events.randomize_push_robot = None
-    env_cfg.curriculum.command_levels_lin_vel = None
-    env_cfg.curriculum.command_levels_ang_vel = None
+    # Disable playback-only noise and perturbations when those terms exist. Not
+    # every task is a locomotion task, so do not assume velocity curricula or
+    # push events are present.
+    policy_obs_cfg = getattr(getattr(env_cfg, "observations", None), "policy", None)
+    if policy_obs_cfg is not None and hasattr(policy_obs_cfg, "enable_corruption"):
+        policy_obs_cfg.enable_corruption = False
+
+    event_cfg = getattr(env_cfg, "events", None)
+    if event_cfg is not None:
+        for event_name in ("randomize_apply_external_force_torque", "randomize_push_robot"):
+            if hasattr(event_cfg, event_name):
+                setattr(event_cfg, event_name, None)
+
+    curriculum_cfg = getattr(env_cfg, "curriculum", None)
+    if curriculum_cfg is not None:
+        for curriculum_name in ("command_levels_lin_vel", "command_levels_ang_vel"):
+            if hasattr(curriculum_cfg, curriculum_name):
+                setattr(curriculum_cfg, curriculum_name, None)
 
     # specify directory for logging experiments
     log_root_path = os.path.join("logs", "rsl_rl", agent_cfg.experiment_name)
@@ -242,6 +293,21 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # fix velocity commands if specified
     if args_cli.fix_commands:
         fix_commands(env_cfg)
+    if args_cli.quiet_noise_vis:
+        base_velocity_cfg = getattr(getattr(env_cfg, "commands", None), "base_velocity", None)
+        if base_velocity_cfg is None or not hasattr(base_velocity_cfg, "noise_marker_cfg"):
+            raise ValueError("--quiet-noise-vis requires a task using MuteVelocityCommandCfg.")
+        base_velocity_cfg.debug_vis = True
+        if hasattr(base_velocity_cfg, "impact_event_marker_cfg"):
+            print(
+                "[PLAY] Event-only touchdown visualization enabled: green=low, amber=medium, red=high; not dB.",
+                flush=True,
+            )
+        else:
+            print(
+                "[PLAY] MUTE impact proxy visualization enabled: green=quiet, amber=medium, red=high; not dB.",
+                flush=True,
+            )
     if args_cli.terrain_level is not None and hasattr(env_cfg, "curriculum"):
         env_cfg.curriculum.terrain_levels = None
 
@@ -260,6 +326,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     if args_cli.video:
         import imageio
         video_path = os.path.join(log_dir, "videos", "play", time.strftime("%Y-%m-%d_%H-%M-%S") + ".mp4")
+        os.makedirs(os.path.dirname(video_path), exist_ok=True)
         writer = imageio.get_writer(video_path, fps=int(1/env.unwrapped.step_dt))
         # video_kwargs = {
         #     "video_folder": os.path.join(log_dir, "videos", "play"),
@@ -309,11 +376,17 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # export policy to onnx/jit
     export_model_dir = os.path.join(os.path.dirname(resume_path), "exported")
     if agent_cfg.class_name == "OnPolicyRunnerCTS":
-        export_cts_policy_as_jit(policy_nn, actor_obs_normalizer=policy_nn.actor_obs_normalizer, single_obs_normalizer=policy_nn.single_obs_normalizer, path=export_model_dir, filename="policy.pt")
-        export_cts_policy_as_onnx(policy_nn, actor_obs_normalizer=policy_nn.actor_obs_normalizer, single_obs_normalizer=policy_nn.single_obs_normalizer, path=export_model_dir, filename="policy.onnx")
+        export_cts_policy_as_jit(policy_nn, actor_obs_normalizer=policy_nn.actor_obs_normalizer, single_obs_normalizer=policy_nn.single_obs_normalizer, path=export_model_dir, filename=f"{args_cli.export_name}.pt")
+        export_cts_policy_as_onnx(policy_nn, actor_obs_normalizer=policy_nn.actor_obs_normalizer, single_obs_normalizer=policy_nn.single_obs_normalizer, path=export_model_dir, filename=f"{args_cli.export_name}.onnx")
     else:
-        export_policy_as_jit(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.pt")
-        export_policy_as_onnx(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.onnx")
+        export_policy_as_jit(policy_nn, normalizer=normalizer, path=export_model_dir, filename=f"{args_cli.export_name}.pt")
+        export_policy_as_onnx(policy_nn, normalizer=normalizer, path=export_model_dir, filename=f"{args_cli.export_name}.onnx")
+
+    print(f"[INFO]: Exported TorchScript policy: {os.path.join(export_model_dir, args_cli.export_name + '.pt')}")
+    print(f"[INFO]: Exported ONNX policy: {os.path.join(export_model_dir, args_cli.export_name + '.onnx')}")
+    if args_cli.export_only:
+        env.close()
+        return
 
     dt = env.unwrapped.step_dt
 
@@ -325,6 +398,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     else:
         camera_follow(env)
     timestep = 0
+    completed_episodes = 0
+    episode_log_sums: dict[str, float] = {}
     # simulate environment
     while simulation_app.is_running():
         start_time = time.time()
@@ -333,18 +408,46 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
             # agent stepping
             actions = policy(obs)
             # env stepping
-            obs, _, dones, _ = env.step(actions)
+            obs, _, dones, extras = env.step(actions)
             # reset recurrent states for episodes that have terminated
             policy_nn.reset(dones)
+        done_count = int(dones.sum().item())
+        if done_count > 0:
+            completed_episodes += done_count
+            episode_log = extras.get("log", {}) if isinstance(extras, dict) else {}
+            for key, value in episode_log.items():
+                if not key.startswith(("Metrics/", "Episode_Termination/")):
+                    continue
+                try:
+                    scalar = float(value.detach().mean().item()) if torch.is_tensor(value) else float(value)
+                except (TypeError, ValueError):
+                    continue
+                episode_log_sums[key] = episode_log_sums.get(key, 0.0) + scalar * done_count
         if args_cli.video:
             writer.append_data(env.env.render())
         if not args_cli.no_camera_follow:
             camera_follow(env)
 
+        timestep += 1
+        if args_cli.max_steps is not None and timestep >= args_cli.max_steps:
+            break
+
         # time delay for real-time evaluation
         sleep_time = dt - (time.time() - start_time)
         if args_cli.real_time and sleep_time > 0:
             time.sleep(sleep_time)
+
+    if args_cli.max_steps is not None:
+        print(
+            f"[PLAY_EVAL] steps={timestep} completed_episodes={completed_episodes}",
+            flush=True,
+        )
+        if completed_episodes > 0:
+            for key in sorted(episode_log_sums):
+                print(
+                    f"[PLAY_EVAL] {key}={episode_log_sums[key] / completed_episodes:.6f}",
+                    flush=True,
+                )
 
     # close the simulator
     env.close()

@@ -1,0 +1,665 @@
+<robot name='XtellarRobotics/ToGo_LFs_v0p1_prototype'>
+
+    <!-- mujoco tags -->
+
+    <material name="main">
+        <color rgba="0.7529411764705882 0.7529411764705882 0.7529411764705882 1.0"/>
+    </material>
+    <material name="rubber_foot">
+        <color rgba="0.149 0.149 0.149 1.0"/>
+    </material>
+
+    <!-- link tags  -->
+
+    <link name='F_base' />
+    <link name='F_imu' />
+    <link name="L0_torso">
+        <inertial>
+            <origin xyz="4.462000000e-04 3.737000000e-03 5.159860000e-02"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <mass value="7.753978700e+00" />
+            <inertia ixx="4.092640000e-02" iyy="9.001370000e-02" izz="1.095425000e-01"
+                     ixy="-5.256000000e-04" ixz="-1.022600000e-03" iyz="2.725000000e-04"
+            />
+        </inertial>
+        <visual>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/visual/m0_torso.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+            <material name="main" />
+        </visual>
+        <collision>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/collision/m0_torso.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+        </collision>
+    </link>
+    <!-- front left leg -->
+    <link name="Lfl1_hipr">
+        <inertial>
+            <origin xyz="2.417210000e-02 -1.808690000e-02 1.600000000e-06"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <mass value="1.078132000e-01" />
+            <inertia ixx="8.220000000e-05" iyy="9.000000000e-05" izz="8.940000000e-05"
+                     ixy="6.700000000e-06" ixz="0.000000000e+00" iyz="0.000000000e+00"
+            />
+        </inertial>
+        <visual>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/visual/mfl1_hipr.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+            <material name="main" />
+        </visual>
+        <collision>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/collision/mfl1_hipr.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="Lfl2_hipp">
+        <inertial>
+            <origin xyz="-2.005190000e-02 8.413670000e-02 2.528300000e-03"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <mass value="1.510354600e+00" />
+            <inertia ixx="3.929300000e-03" iyy="4.882300000e-03" izz="7.857800000e-03"
+                     ixy="1.879900000e-03" ixz="3.603000000e-04" iyz="-2.467000000e-04"
+            />
+        </inertial>
+        <visual>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/visual/mfl2_hipp.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+            <material name="main" />
+        </visual>
+        <collision>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/collision/mfl2_hipp.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="Lfl3_knee">
+        <inertial>
+            <origin xyz="1.119741000e-01 0.000000000e+00 -3.990870000e-02"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <mass value="3.694785000e-01" />
+            <inertia ixx="5.015000000e-04" iyy="2.553300000e-03" izz="2.082600000e-03"
+                     ixy="0.000000000e+00" ixz="8.986000000e-04" iyz="0.000000000e+00"
+            />
+        </inertial>
+        <visual>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/visual/mfl3_knee.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+            <material name="main" />
+        </visual>
+        <collision>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/collision/mfl3_knee.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="Lfl4_foot">
+        <inertial>
+            <origin xyz="5.000000000e-07 -8.500000000e-06 -8.971600000e-03"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <mass value="8.600240000e-02" />
+            <inertia ixx="2.820000000e-05" iyy="2.870000000e-05" izz="3.350000000e-05"
+                     ixy="0.000000000e+00" ixz="0.000000000e+00" iyz="0.000000000e+00"
+            />
+        </inertial>
+        <visual>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/visual/mfl4_foot.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+            <material name="rubber_foot" />
+        </visual>
+        <collision>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/collision/mfl4_foot.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+        </collision>
+    </link>
+    <!-- front right leg -->
+    <link name="Lfr1_hipr">
+        <inertial>
+            <origin xyz="2.417210000e-02 1.808690000e-02 -1.600000000e-06"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <mass value="1.078132000e-01" />
+            <inertia ixx="8.220000000e-05" iyy="9.000000000e-05" izz="8.940000000e-05"
+                     ixy="-6.700000000e-06" ixz="0.000000000e+00" iyz="0.000000000e+00"
+            />
+        </inertial>
+        <visual>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/visual/mfr1_hipr.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+            <material name="main" />
+        </visual>
+        <collision>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/collision/mfr1_hipr.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="Lfr2_hipp">
+        <inertial>
+            <origin xyz="-2.005200000e-02 -8.413660000e-02 2.646100000e-03"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <mass value="1.510350900e+00" />
+            <inertia ixx="3.928400000e-03" iyy="4.881300000e-03" izz="7.857700000e-03"
+                     ixy="-1.879900000e-03" ixz="3.634000000e-04" iyz="2.345000000e-04"
+            />
+        </inertial>
+        <visual>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/visual/mfr2_hipp.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+            <material name="main" />
+        </visual>
+        <collision>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/collision/mfr2_hipp.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="Lfr3_knee">
+        <inertial>
+            <origin xyz="1.119741000e-01 0.000000000e+00 -3.990870000e-02"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <mass value="3.694785000e-01" />
+            <inertia ixx="5.015000000e-04" iyy="2.553300000e-03" izz="2.082600000e-03"
+                     ixy="0.000000000e+00" ixz="8.986000000e-04" iyz="0.000000000e+00"
+            />
+        </inertial>
+        <visual>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/visual/mfr3_knee.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+            <material name="main" />
+        </visual>
+        <collision>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/collision/mfr3_knee.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="Lfr4_foot">
+        <inertial>
+            <origin xyz="5.000000000e-07 -8.500000000e-06 -8.971600000e-03"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <mass value="8.600240000e-02" />
+            <inertia ixx="2.820000000e-05" iyy="2.870000000e-05" izz="3.350000000e-05"
+                     ixy="0.000000000e+00" ixz="0.000000000e+00" iyz="0.000000000e+00"
+            />
+        </inertial>
+        <visual>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/visual/mfr4_foot.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+            <material name="rubber_foot" />
+        </visual>
+        <collision>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/collision/mfr4_foot.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+        </collision>
+    </link>
+    <!-- rear left leg -->
+    <link name="Lrl1_hipr">
+        <inertial>
+            <origin xyz="-2.417210000e-02 -1.808690000e-02 -1.600000000e-06"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <mass value="1.078132000e-01" />
+            <inertia ixx="8.220000000e-05" iyy="9.000000000e-05" izz="8.940000000e-05"
+                     ixy="-6.700000000e-06" ixz="0.000000000e+00" iyz="0.000000000e+00"
+            />
+        </inertial>
+        <visual>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/visual/mrl1_hipr.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+            <material name="main" />
+        </visual>
+        <collision>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/collision/mrl1_hipr.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="Lrl2_hipp">
+        <inertial>
+            <origin xyz="-2.005190000e-02 8.413670000e-02 2.528300000e-03"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <mass value="1.510354600e+00" />
+            <inertia ixx="3.929300000e-03" iyy="4.882300000e-03" izz="7.857800000e-03"
+                     ixy="1.879900000e-03" ixz="3.603000000e-04" iyz="-2.467000000e-04"
+            />
+        </inertial>
+        <visual>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/visual/mrl2_hipp.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+            <material name="main" />
+        </visual>
+        <collision>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/collision/mrl2_hipp.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="Lrl3_knee">
+        <inertial>
+            <origin xyz="1.119741000e-01 0.000000000e+00 -3.990870000e-02"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <mass value="3.694785000e-01" />
+            <inertia ixx="5.015000000e-04" iyy="2.553300000e-03" izz="2.082600000e-03"
+                     ixy="0.000000000e+00" ixz="8.986000000e-04" iyz="0.000000000e+00"
+            />
+        </inertial>
+        <visual>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/visual/mrl3_knee.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+            <material name="main" />
+        </visual>
+        <collision>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/collision/mrl3_knee.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="Lrl4_foot">
+        <inertial>
+            <origin xyz="5.000000000e-07 -8.500000000e-06 -8.971600000e-03"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <mass value="8.600240000e-02" />
+            <inertia ixx="2.820000000e-05" iyy="2.870000000e-05" izz="3.350000000e-05"
+                     ixy="0.000000000e+00" ixz="0.000000000e+00" iyz="0.000000000e+00"
+            />
+        </inertial>
+        <visual>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/visual/mrl4_foot.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+            <material name="rubber_foot" />
+        </visual>
+        <collision>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/collision/mrl4_foot.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+        </collision>
+    </link>
+    <!-- rear right leg -->
+    <link name="Lrr1_hipr">
+        <inertial>
+            <origin xyz="-2.417210000e-02 1.808690000e-02 1.600000000e-06"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <mass value="1.078132000e-01" />
+            <inertia ixx="8.220000000e-05" iyy="9.000000000e-05" izz="8.940000000e-05"
+                     ixy="6.700000000e-06" ixz="0.000000000e+00" iyz="0.000000000e+00"
+            />
+        </inertial>
+        <visual>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/visual/mrr1_hipr.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+            <material name="main" />
+        </visual>
+        <collision>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/collision/mrr1_hipr.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="Lrr2_hipp">
+        <inertial>
+            <origin xyz="-2.005200000e-02 -8.413660000e-02 2.646100000e-03"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <mass value="1.510350900e+00" />
+            <inertia ixx="3.928400000e-03" iyy="4.881300000e-03" izz="7.857700000e-03"
+                     ixy="-1.879900000e-03" ixz="3.634000000e-04" iyz="2.345000000e-04"
+            />
+        </inertial>
+        <visual>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/visual/mrr2_hipp.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+            <material name="main" />
+        </visual>
+        <collision>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/collision/mrr2_hipp.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="Lrr3_knee">
+        <inertial>
+            <origin xyz="1.119741000e-01 0.000000000e+00 -3.990870000e-02"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <mass value="3.694785000e-01" />
+            <inertia ixx="5.015000000e-04" iyy="2.553300000e-03" izz="2.082600000e-03"
+                     ixy="0.000000000e+00" ixz="8.986000000e-04" iyz="0.000000000e+00"
+            />
+        </inertial>
+        <visual>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/visual/mrr3_knee.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+            <material name="main" />
+        </visual>
+        <collision>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/collision/mrr3_knee.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="Lrr4_foot">
+        <inertial>
+            <origin xyz="5.000000000e-07 -8.500000000e-06 -8.971600000e-03"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <mass value="8.600240000e-02" />
+            <inertia ixx="2.820000000e-05" iyy="2.870000000e-05" izz="3.350000000e-05"
+                     ixy="0.000000000e+00" ixz="0.000000000e+00" iyz="0.000000000e+00"
+            />
+        </inertial>
+        <visual>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/visual/mrr4_foot.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+            <material name="rubber_foot" />
+        </visual>
+        <collision>
+            <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                    rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+            />
+            <geometry>
+                <mesh filename="../meshes/collision/mrr4_foot.stl" scale="1.000000000e-03 1.000000000e-03 1.000000000e-03" />
+            </geometry>
+        </collision>
+    </link>
+
+    <!-- joint tags  -->
+    <joint name="J_F_base_L0_torso" type="fixed">
+        <origin xyz="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+                rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+        />
+        <parent link="F_base" />
+        <child link="L0_torso" />
+    </joint>
+    <joint name="J_L0_torso_F_imu" type="fixed">
+        <origin xyz="8.315000000e-02 0.000000000e+00 7.700000000e-02"
+                rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+        />
+        <parent link="L0_torso" />
+        <child link="F_imu" />
+    </joint>
+    <!-- front left leg -->
+    <joint name="Jfl1_hipr" type="revolute">
+        <origin xyz="1.260000000e-01 6.250000000e-02 4.500000000e-02"
+                rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+        />
+        <parent link="L0_torso" />
+        <child link="Lfl1_hipr" />
+        <axis xyz="1.000000000e+00 0.000000000e+00 0.000000000e+00" />
+        <dynamics damping="7.000000000e-03" friction="1.940000000e-01"/>
+        <limit lower="-0.4363323129985824" upper="0.4363323129985824" effort="48.0" velocity="28.064894372068817" />
+    </joint>
+    <joint name="Jfl2_hipp" type="revolute">
+        <origin xyz="4.650000000e-02 -3.990000000e-02 0.000000000e+00"
+                rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+        />
+        <parent link="Lfl1_hipr" />
+        <child link="Lfl2_hipp" />
+        <axis xyz="0.000000000e+00 1.000000000e+00 0.000000000e+00" />
+        <dynamics damping="7.000000000e-03" friction="1.940000000e-01"/>
+        <limit lower="-1.9198621771937625" upper="1.9198621771937625" effort="48.0" velocity="28.064894372068817" />
+    </joint>
+    <joint name="Jfl3_knee" type="revolute">
+        <origin xyz="-2.000000000e-01 1.458000000e-01 0.000000000e+00"
+                rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+        />
+        <parent link="Lfl2_hipp" />
+        <child link="Lfl3_knee" />
+        <axis xyz="0.000000000e+00 1.000000000e+00 0.000000000e+00" />
+        <dynamics damping="7.000000000e-03" friction="1.940000000e-01"/>
+        <limit lower="0.0" upper="1.7453292519943295" effort="48.0" velocity="28.064894372068817" />
+    </joint>
+    <joint name="Jfl4_foot" type="fixed">
+        <origin xyz="1.942564000e-01 0.000000000e+00 -8.890640000e-02"
+                rpy="0.000000000e+00 -6.632251000e-01 0.000000000e+00"
+        />
+        <parent link="Lfl3_knee" />
+        <child link="Lfl4_foot" />
+    </joint>
+    <!-- front right leg -->
+    <joint name="Jfr1_hipr" type="revolute">
+        <origin xyz="1.260000000e-01 -6.250000000e-02 4.500000000e-02"
+                rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+        />
+        <parent link="L0_torso" />
+        <child link="Lfr1_hipr" />
+        <axis xyz="1.000000000e+00 0.000000000e+00 0.000000000e+00" />
+        <dynamics damping="7.000000000e-03" friction="1.940000000e-01"/>
+        <limit lower="-0.4363323129985824" upper="0.4363323129985824" effort="48.0" velocity="28.064894372068817" />
+    </joint>
+    <joint name="Jfr2_hipp" type="revolute">
+        <origin xyz="4.650000000e-02 3.990000000e-02 0.000000000e+00"
+                rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+        />
+        <parent link="Lfr1_hipr" />
+        <child link="Lfr2_hipp" />
+        <axis xyz="0.000000000e+00 -1.000000000e+00 0.000000000e+00" />
+        <dynamics damping="7.000000000e-03" friction="1.940000000e-01"/>
+        <limit lower="-1.9198621771937625" upper="1.9198621771937625" effort="48.0" velocity="28.064894372068817" />
+    </joint>
+    <joint name="Jfr3_knee" type="revolute">
+        <origin xyz="-2.000000000e-01 -1.458000000e-01 0.000000000e+00"
+                rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+        />
+        <parent link="Lfr2_hipp" />
+        <child link="Lfr3_knee" />
+        <axis xyz="0.000000000e+00 -1.000000000e+00 0.000000000e+00" />
+        <dynamics damping="7.000000000e-03" friction="1.940000000e-01"/>
+        <limit lower="-1.7453292519943295" upper="0.0" effort="48.0" velocity="28.064894372068817" />
+    </joint>
+    <joint name="Jfr4_foot" type="fixed">
+        <origin xyz="1.942564000e-01 0.000000000e+00 -8.890640000e-02"
+                rpy="0.000000000e+00 -6.632251000e-01 0.000000000e+00"
+        />
+        <parent link="Lfr3_knee" />
+        <child link="Lfr4_foot" />
+    </joint>
+    <!-- rear left leg -->
+    <joint name="Jrl1_hipr" type="revolute">
+        <origin xyz="-1.268000000e-01 6.250000000e-02 4.500000000e-02"
+                rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+        />
+        <parent link="L0_torso" />
+        <child link="Lrl1_hipr" />
+        <axis xyz="-1.000000000e+00 0.000000000e+00 0.000000000e+00" />
+        <dynamics damping="7.000000000e-03" friction="1.940000000e-01"/>
+        <limit lower="-0.4363323129985824" upper="0.4363323129985824" effort="48.0" velocity="28.064894372068817" />
+    </joint>
+    <joint name="Jrl2_hipp" type="revolute">
+        <origin xyz="-4.650000000e-02 -3.990000000e-02 0.000000000e+00"
+                rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+        />
+        <parent link="Lrl1_hipr" />
+        <child link="Lrl2_hipp" />
+        <axis xyz="0.000000000e+00 1.000000000e+00 0.000000000e+00" />
+        <dynamics damping="7.000000000e-03" friction="1.940000000e-01"/>
+        <limit lower="-1.9198621771937625" upper="1.9198621771937625" effort="48.0" velocity="28.064894372068817" />
+    </joint>
+    <joint name="Jrl3_knee" type="revolute">
+        <origin xyz="-2.000000000e-01 1.458000000e-01 0.000000000e+00"
+                rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+        />
+        <parent link="Lrl2_hipp" />
+        <child link="Lrl3_knee" />
+        <axis xyz="0.000000000e+00 1.000000000e+00 0.000000000e+00" />
+        <dynamics damping="7.000000000e-03" friction="1.940000000e-01"/>
+        <limit lower="0.0" upper="1.7453292519943295" effort="48.0" velocity="28.064894372068817" />
+    </joint>
+    <joint name="Jrl4_foot" type="fixed">
+        <origin xyz="1.942564000e-01 0.000000000e+00 -8.890640000e-02"
+                rpy="0.000000000e+00 -6.632251000e-01 0.000000000e+00"
+        />
+        <parent link="Lrl3_knee" />
+        <child link="Lrl4_foot" />
+    </joint>
+    <!-- rear right leg -->
+    <joint name="Jrr1_hipr" type="revolute">
+        <origin xyz="-1.268000000e-01 -6.250000000e-02 4.500000000e-02"
+                rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+        />
+        <parent link="L0_torso" />
+        <child link="Lrr1_hipr" />
+        <axis xyz="-1.000000000e+00 0.000000000e+00 0.000000000e+00" />
+        <dynamics damping="7.000000000e-03" friction="1.940000000e-01"/>
+        <limit lower="-0.4363323129985824" upper="0.4363323129985824" effort="48.0" velocity="28.064894372068817" />
+    </joint>
+    <joint name="Jrr2_hipp" type="revolute">
+        <origin xyz="-4.650000000e-02 3.990000000e-02 0.000000000e+00"
+                rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+        />
+        <parent link="Lrr1_hipr" />
+        <child link="Lrr2_hipp" />
+        <axis xyz="0.000000000e+00 -1.000000000e+00 0.000000000e+00" />
+        <dynamics damping="7.000000000e-03" friction="1.940000000e-01"/>
+        <limit lower="-1.9198621771937625" upper="1.9198621771937625" effort="48.0" velocity="28.064894372068817" />
+    </joint>
+    <joint name="Jrr3_knee" type="revolute">
+        <origin xyz="-2.000000000e-01 -1.458000000e-01 0.000000000e+00"
+                rpy="0.000000000e+00 0.000000000e+00 0.000000000e+00"
+        />
+        <parent link="Lrr2_hipp" />
+        <child link="Lrr3_knee" />
+        <axis xyz="0.000000000e+00 -1.000000000e+00 0.000000000e+00" />
+        <dynamics damping="7.000000000e-03" friction="1.940000000e-01"/>
+        <limit lower="-1.7453292519943295" upper="0.0" effort="48.0" velocity="28.064894372068817" />
+    </joint>
+    <joint name="Jrr4_foot" type="fixed">
+        <origin xyz="1.942564000e-01 0.000000000e+00 -8.890640000e-02"
+                rpy="0.000000000e+00 -6.632251000e-01 0.000000000e+00"
+        />
+        <parent link="Lrr3_knee" />
+        <child link="Lrr4_foot" />
+    </joint>
+
+</robot>

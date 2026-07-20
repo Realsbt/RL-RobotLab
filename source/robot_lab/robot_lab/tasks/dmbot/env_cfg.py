@@ -412,6 +412,47 @@ class RewardsCfg:
             "sensor_cfg": SceneEntityCfg("height_scanner_small"),
         },
     )
+    standstill_feet_contact_ratio = RewTerm(
+        func=mdp.standstill_feet_contact_ratio,
+        weight=0.15,
+        params={
+            "command_name": "base_velocity",
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=FOOT_LINK_NAME),
+            "command_threshold": 0.1,
+            "force_threshold": 1.0,
+        },
+    )
+    standstill_all_feet_contact = RewTerm(
+        func=mdp.standstill_all_feet_contact,
+        weight=0.15,
+        params={
+            "command_name": "base_velocity",
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=FOOT_LINK_NAME),
+            "command_threshold": 0.1,
+            "force_threshold": 1.0,
+        },
+    )
+    standstill_base_motion_l2 = RewTerm(
+        func=mdp.standstill_base_motion_l2,
+        weight=-3.0,
+        params={
+            "command_name": "base_velocity",
+            "command_threshold": 0.1,
+            "yaw_rate_scale": 0.25,
+            "asset_cfg": SceneEntityCfg("robot", body_names=BASE_LINK_NAME),
+        },
+    )
+    standstill_foot_slide = RewTerm(
+        func=mdp.standstill_foot_slide,
+        weight=-0.05,
+        params={
+            "command_name": "base_velocity",
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=FOOT_LINK_NAME),
+            "command_threshold": 0.1,
+            "force_threshold": 1.0,
+            "asset_cfg": SceneEntityCfg("robot", body_names=FOOT_LINK_NAME),
+        },
+    )
     hip_pos_penalty_l1 = RewTerm(
         func=mdp.hip_pos_penalty_l1,
         weight=-0.05,
@@ -439,10 +480,11 @@ class TerminationsCfg:
     """Termination terms for the MDP."""
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     illegal_contact = DoneTerm(
-        func=mdp.illegal_contact,
+        func=mdp.illegal_contact_consecutive,
         params={
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=BASE_LINK_NAME),
-            "threshold": 1.0
+            "threshold": 10.0,
+            "consecutive_frames": 3,
         },
     )
     

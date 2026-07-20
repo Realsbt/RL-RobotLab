@@ -1,0 +1,19 @@
+Joint Name,Parent Link,Child Link,X,Y,Z,Roll,Pitch,Yaw,Joint Type,Axis X,Axis Y,Axis Z,Range Min,Range Max,Damping,Friction,Armature
+J_F_base_L0_torso,F_base,L0_torso,0,0,0,0,0,0,Fixed,0,0,0,0,0,0,0,0
+J_L0_torso_F_imu,L0_torso,F_imu,0.08315,0.0,0.077,0.0,0.0,0.0,Fixed,0.0,0.0,0.0,0,0,0,0,0
+Jfl1_hipr,L0_torso,Lfl1_hipr,0.126,0.0625,0.045,0.0,0.0,0.0,Revolute,1.0,0.0,0.0,-25,25,0,0,6.180843e-3
+Jfl2_hipp,Lfl1_hipr,Lfl2_hipp,0.0465,-0.0399,0.0,0.0,0.0,0.0,Revolute,0.0,1.0,0.0,-110,110,0,0,6.180843e-3
+Jfl3_knee,Lfl2_hipp,Lfl3_knee,-0.2,0.1458,0.0,0.0,0.0,0.0,Revolute,0.0,1.0,0.0,0,100,0,0,6.180843e-3
+Jfl4_foot,Lfl3_knee,Lfl4_foot,0.1942564,0.0,-0.0889064,0.0,-0.6632251,0.0,Fixed,0.0,0.0,0.0,0,0,0,0,0
+Jfr1_hipr,L0_torso,Lfr1_hipr,0.126,-0.0625,0.045,0.0,0.0,0.0,Revolute,1.0,0.0,0.0,-25,25,0,0,6.180843e-3
+Jfr2_hipp,Lfr1_hipr,Lfr2_hipp,0.0465,0.0399,0.0,0.0,0.0,0.0,Revolute,0.0,-1.0,0.0,-110,110,0,0,6.180843e-3
+Jfr3_knee,Lfr2_hipp,Lfr3_knee,-0.2,-0.1458,0.0,0.0,0.0,0.0,Revolute,0.0,-1.0,0.0,-100,0,0,0,6.180843e-3
+Jfr4_foot,Lfr3_knee,Lfr4_foot,0.1942564,0.0,-0.0889064,0.0,-0.6632251,0.0,Fixed,0.0,0.0,0.0,0,0,0,0,0
+Jrl1_hipr,L0_torso,Lrl1_hipr,-0.1268,0.0625,0.045,0.0,0.0,0.0,Revolute,-1.0,0.0,0.0,-25,25,0,0,6.180843e-3
+Jrl2_hipp,Lrl1_hipr,Lrl2_hipp,-0.0465,-0.0399,0.0,0.0,0.0,0.0,Revolute,0.0,1.0,0.0,-110,110,0,0,6.180843e-3
+Jrl3_knee,Lrl2_hipp,Lrl3_knee,-0.2,0.1458,0.0,0.0,0.0,0.0,Revolute,0.0,1.0,0.0,0,100,0,0,6.180843e-3
+Jrl4_foot,Lrl3_knee,Lrl4_foot,0.1942564,0.0,-0.0889064,0.0,-0.6632251,0.0,Fixed,0.0,0.0,0.0,0,0,0,0,0
+Jrr1_hipr,L0_torso,Lrr1_hipr,-0.1268,-0.0625,0.045,0.0,0.0,0.0,Revolute,-1.0,0.0,0.0,-25,25,0,0,6.180843e-3
+Jrr2_hipp,Lrr1_hipr,Lrr2_hipp,-0.0465,0.0399,0.0,0.0,0.0,0.0,Revolute,0.0,-1.0,0.0,-110,110,0,0,6.180843e-3
+Jrr3_knee,Lrr2_hipp,Lrr3_knee,-0.2,-0.1458,0.0,0.0,0.0,0.0,Revolute,0.0,-1.0,0.0,-100,0,0,0,6.180843e-3
+Jrr4_foot,Lrr3_knee,Lrr4_foot,0.1942564,0.0,-0.0889064,0.0,-0.6632251,0.0,Fixed,0.0,0.0,0.0,0,0,0,0,0
