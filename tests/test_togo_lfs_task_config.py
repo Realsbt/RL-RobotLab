@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 LFS_CFG_PATH = ROOT / "source/robot_lab/robot_lab/tasks/togo_lfs/env_cfg.py"
 LFS_OBSERVATIONS_PATH = ROOT / "source/robot_lab/robot_lab/tasks/dmbot/mdp/observations.py"
 DMBOT_COMMAND_PATH = ROOT / "source/robot_lab/robot_lab/tasks/dmbot/mdp/commands.py"
+QUIET_CFG_PATH = ROOT / "source/robot_lab/robot_lab/tasks/togo_lfs_quiet/env_cfg.py"
 LFS_ASSET_PATH = ROOT / "source/robot_lab/robot_lab/assets/togo_lfs.py"
 LFS_CUSTOM_ACTUATOR_PATH = ROOT / "source/robot_lab/robot_lab/assets/custom_actuator.py"
 LFS_ASSET_DIR = ROOT / "resources/Robots/xtellar/ToGo_LFs_v0p1_new"
@@ -50,13 +51,17 @@ def test_lfs_curriculum_expands_forward_lateral_and_yaw_ranges():
         assert expected_range in cfg_text
 
 
-def test_shared_dmbot_command_curriculum_is_unchanged():
+def test_shared_dmbot_and_quiet_command_curricula_are_unchanged():
     dmbot_text = DMBOT_COMMAND_PATH.read_text(encoding="utf-8")
+    quiet_text = QUIET_CFG_PATH.read_text(encoding="utf-8")
 
     assert '"iter": 20000' in dmbot_text
     assert '"iter": 35000' in dmbot_text
     assert '"iter": 60000' in dmbot_text
     assert '"iter": 100000' in dmbot_text
+    assert "lin_vel_x=(-0.5, 0.5)" in quiet_text
+    assert "lin_vel_y=(-0.15, 0.15)" in quiet_text
+    assert "ang_vel_z=(-0.4, 0.4)" in quiet_text
 
 
 def test_lfs_motor_speed_converts_268_rpm_without_dividing_by_gear_ratio():
