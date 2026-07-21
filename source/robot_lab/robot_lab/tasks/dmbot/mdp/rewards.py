@@ -109,6 +109,100 @@ def stand_still(
     return reward
 
 
+def _standstill_foot_contacts(
+    env: ManagerBasedRLEnv,
+    command_name: str,
+    sensor_cfg: SceneEntityCfg,
+    command_threshold: float,
+    force_threshold: float,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Return foot contact states and the gate for a commanded static stance."""
+    contact_sensor: ContactSensor = env.scene[sensor_cfg.name]
+    contacts = (
+        torch.linalg.norm(contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids], dim=-1)
+        > force_threshold
+    )
+    command_norm = torch.linalg.norm(env.command_manager.get_command(command_name), dim=1)
+    upright_scale = torch.clamp(-env.scene["robot"].data.projected_gravity_b[:, 2], 0.0, 0.7) / 0.7
+    return contacts, (command_norm < command_threshold) * upright_scale
+
+
+def standstill_feet_contact_ratio(
+    env: ManagerBasedRLEnv,
+    command_name: str,
+    sensor_cfg: SceneEntityCfg,
+    command_threshold: float = 0.1,
+    force_threshold: float = 1.0,
+) -> torch.Tensor:
+    """Reward the fraction of supporting feet only at near-zero command."""
+    contacts, gate = _standstill_foot_contacts(
+        env, command_name, sensor_cfg, command_threshold, force_threshold
+    )
+    return contacts.float().mean(dim=1) * gate
+
+
+def standstill_all_feet_contact(
+    env: ManagerBasedRLEnv,
+    command_name: str,
+    sensor_cfg: SceneEntityCfg,
+    command_threshold: float = 0.1,
+    force_threshold: float = 1.0,
+) -> torch.Tensor:
+    """Add a small bonus when every configured foot supports a static stance."""
+    contacts, gate = _standstill_foot_contacts(
+        env, command_name, sensor_cfg, command_threshold, force_threshold
+    )
+    return (contacts.sum(dim=1) == contacts.shape[1]).float() * gate
+
+
+def standstill_base_motion_l2(
+    env: ManagerBasedRLEnv,
+    command_name: str,
+    command_threshold: float = 0.1,
+    yaw_rate_scale: float = 0.25,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Penalize base drift at near-zero command without constraining foot recovery motions.
+
+    The term is deliberately terrain-agnostic: on slopes and stairs the policy may need
+    to move its feet to regain support, but the commanded result should still be a base
+    that does not translate or spin in place.
+    """
+    asset: RigidObject = env.scene[asset_cfg.name]
+    command_norm = torch.linalg.norm(env.command_manager.get_command(command_name), dim=1)
+    planar_motion = torch.sum(torch.square(asset.data.root_lin_vel_b[:, :2]), dim=1)
+    yaw_motion = yaw_rate_scale * torch.square(asset.data.root_ang_vel_b[:, 2])
+    upright_scale = torch.clamp(-asset.data.projected_gravity_b[:, 2], 0.0, 0.7) / 0.7
+    return (planar_motion + yaw_motion) * (command_norm < command_threshold) * upright_scale
+
+
+def standstill_foot_slide(
+    env: ManagerBasedRLEnv,
+    command_name: str,
+    sensor_cfg: SceneEntityCfg,
+    command_threshold: float = 0.1,
+    force_threshold: float = 1.0,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Penalize contact-foot sliding at near-zero command.
+
+    This term targets downhill/stair creep: when the policy is commanded to stop,
+    feet that are already supporting the body should not keep sliding across the
+    terrain surface. It uses world-frame horizontal foot velocity so planted feet
+    are only penalized when they actually move over the ground.
+    """
+    contact_sensor: ContactSensor = env.scene[sensor_cfg.name]
+    contacts = (
+        torch.linalg.norm(contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids], dim=-1)
+        > force_threshold
+    )
+    asset: RigidObject = env.scene[asset_cfg.name]
+    command_norm = torch.linalg.norm(env.command_manager.get_command(command_name), dim=1)
+    foot_xy_speed = torch.linalg.norm(asset.data.body_lin_vel_w[:, asset_cfg.body_ids, :2], dim=-1)
+    upright_scale = torch.clamp(-asset.data.projected_gravity_b[:, 2], 0.0, 0.7) / 0.7
+    return torch.sum(foot_xy_speed * contacts, dim=1) * (command_norm < command_threshold) * upright_scale
+
+
 def joint_pos_penalty_l1(
     env: ManagerBasedRLEnv,
     command_name: str,

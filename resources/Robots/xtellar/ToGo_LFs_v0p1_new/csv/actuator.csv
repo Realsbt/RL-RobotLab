@@ -1,0 +1,13 @@
+Actuator Name,Joint Name,Velocity Limit,Effort Limit,Gear Ratio,Armature,Viscous Damping,Friction
+Rfl1_hipr,Jfl1_hipr,268,48,17,6.180843e-3,0.007,0.194
+Rfl2_hipp,Jfl2_hipp,268,48,17,6.180843e-3,0.007,0.194
+Rfl3_knee,Jfl3_knee,268,48,17,6.180843e-3,0.007,0.194
+Rfr1_hipr,Jfr1_hipr,268,48,17,6.180843e-3,0.007,0.194
+Rfr2_hipp,Jfr2_hipp,268,48,17,6.180843e-3,0.007,0.194
+Rfr3_knee,Jfr3_knee,268,48,17,6.180843e-3,0.007,0.194
+Rrl1_hipr,Jrl1_hipr,268,48,17,6.180843e-3,0.007,0.194
+Rrl2_hipp,Jrl2_hipp,268,48,17,6.180843e-3,0.007,0.194
+Rrl3_knee,Jrl3_knee,268,48,17,6.180843e-3,0.007,0.194
+Rrr1_hipr,Jrr1_hipr,268,48,17,6.180843e-3,0.007,0.194
+Rrr2_hipp,Jrr2_hipp,268,48,17,6.180843e-3,0.007,0.194
+Rrr3_knee,Jrr3_knee,268,48,17,6.180843e-3,0.007,0.194

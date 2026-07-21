@@ -85,39 +85,32 @@ def test_dmbot_terrain_matches_go2_original_strategy():
     assert '"random_rough": terrain_gen.HfRandomUniformTerrainCfg(' not in active_cfg
 
 
-def test_dmbot_command_curriculum_matches_smoothed_go2_targets_strategy():
+def test_dmbot_command_curriculum_uses_continuous_quintic_smoothing():
     command_text = (TASK_DIR / "mdp" / "commands.py").read_text()
 
     assert "Ranges:" in command_text
     assert "lin_vel_x: tuple[float, float] = [-0.5, 0.5]" in command_text
     assert "lin_vel_y: tuple[float, float] = [-0.5, 0.5]" in command_text
     assert "ang_vel_yaw: tuple[float, float] = [-1.0, 1.0]" in command_text
-    for expected in (
-        "'iter': 20000",
-        "'lin_vel_x': [-0.75, 0.75]",
-        "'lin_vel_y': [-0.75, 0.75]",
-        "'ang_vel_yaw': [-1.25, 1.25]",
-        "'iter': 35000",
-        "'lin_vel_x': [-1.0, 1.0]",
-        "'lin_vel_y': [-1.0, 1.0]",
-        "'ang_vel_yaw': [-1.5, 1.5]",
-        "'iter': 60000",
-        "'lin_vel_x': [-1.5, 1.5]",
-        "'lin_vel_y': [-1.0, 1.0]",
-        "'ang_vel_yaw': [-1.75, 1.75]",
-        "'iter': 100000",
-        "'lin_vel_x': [-2.0, 2.0]",
-        "'lin_vel_y': [-1.0, 1.0]",
-        "'ang_vel_yaw': [-2.0, 2.0]",
-    ):
-        assert expected in command_text
-    assert "'iter': 2000," not in command_text
-    assert "'iter': 8000," not in command_text
-    assert "'iter': 5000," not in command_text
-    assert "'iter': 50000" not in command_text
+    assert "smooth_command_range_curriculum: dict | None" in command_text
+    assert '"nodes": [' in command_text
+    assert '"iter": 0' in command_text
+    assert '"iter": 20000' in command_text
+    assert '"iter": 35000' in command_text
+    assert '"iter": 60000' in command_text
+    assert '"iter": 100000' in command_text
+    assert '"lin_vel_x": [-0.75, 0.75]' in command_text
+    assert '"lin_vel_x": [-1.0, 1.0]' in command_text
+    assert '"lin_vel_x": [-1.5, 1.5]' in command_text
+    assert '"lin_vel_x": [-2.0, 2.0]' in command_text
+    assert '"lin_vel_y": [-1.0, 1.0]' in command_text
+    assert '"ang_vel_yaw": [-2.0, 2.0]' in command_text
+    assert "eased_progress = progress**3 * (progress * (progress * 6.0 - 15.0) + 10.0)" in command_text
+    assert "segment={start_node['iter']}-{end_node['iter']}" in command_text
+    assert "command_range_curriculum: list[dict] = []" in command_text
     assert (
         "zero_command_curriculum: dict = "
-        "{'start_iter': 0, 'end_iter': 1500, 'start_value': 0.0, 'end_value': 0.1}"
+        "{'start_iter': 0, 'end_iter': 1500, 'start_value': 0.0, 'end_value': 0.15}"
     ) in command_text
     assert "'slope_up':\n            {'lin_vel_x': [-1.5, 1.5]" in command_text
     assert "'rough_slope':\n            {'lin_vel_x': [-1.5, 1.5]" in command_text
@@ -134,3 +127,45 @@ def test_dmbot_auxiliary_curricula_match_go2_original_strategy():
     assert "base_height_l2 = CurrTerm(mdp.gradual_reward_weight_modification" in env_text
     assert '"term_name": "lin_vel_z_l2", "initial_weight": -2.0, "final_weight": -0.0' in env_text
     assert '"term_name": "base_height_l2", "initial_weight": -1.0, "final_weight": -10.0' in env_text
+
+
+def test_dmbot_torso_illegal_contact_threshold_allows_light_brushes():
+    env_text = (TASK_DIR / "env_cfg.py").read_text()
+    init_text = (TASK_DIR / "mdp" / "__init__.py").read_text()
+    termination_text = (TASK_DIR / "mdp" / "terminations.py").read_text()
+
+    assert "from .terminations import *" in init_text
+    assert "def illegal_contact_consecutive(" in termination_text
+    assert "torch.all(frame_has_contact, dim=1)" in termination_text
+    assert "illegal_contact = DoneTerm(" in env_text
+    assert "func=mdp.illegal_contact_consecutive" in env_text
+    assert '"sensor_cfg": SceneEntityCfg("contact_forces", body_names=BASE_LINK_NAME)' in env_text
+    assert '"threshold": 10.0' in env_text
+    assert '"consecutive_frames": 3' in env_text
+
+
+def test_dmbot_zero_command_base_motion_penalty_is_configured():
+    env_text = (TASK_DIR / "env_cfg.py").read_text()
+    reward_text = (TASK_DIR / "mdp" / "rewards.py").read_text()
+
+    assert "def standstill_base_motion_l2(" in reward_text
+    assert "planar_motion = torch.sum(torch.square(asset.data.root_lin_vel_b[:, :2]), dim=1)" in reward_text
+    assert "yaw_motion = yaw_rate_scale * torch.square(asset.data.root_ang_vel_b[:, 2])" in reward_text
+    assert "standstill_base_motion_l2 = RewTerm(" in env_text
+    assert "func=mdp.standstill_base_motion_l2" in env_text
+    assert "weight=-3.0" in env_text
+    assert '"yaw_rate_scale": 0.25' in env_text
+
+
+def test_dmbot_zero_command_foot_slide_penalty_is_configured():
+    env_text = (TASK_DIR / "env_cfg.py").read_text()
+    reward_text = (TASK_DIR / "mdp" / "rewards.py").read_text()
+    command_text = (TASK_DIR / "mdp" / "commands.py").read_text()
+
+    assert "'end_value': 0.15" in command_text
+    assert "def standstill_foot_slide(" in reward_text
+    assert "asset.data.body_lin_vel_w[:, asset_cfg.body_ids, :2]" in reward_text
+    assert "foot_xy_speed * contacts" in reward_text
+    assert "standstill_foot_slide = RewTerm(" in env_text
+    assert "func=mdp.standstill_foot_slide" in env_text
+    assert "weight=-0.05" in env_text

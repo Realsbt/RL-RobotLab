@@ -8,6 +8,7 @@ from typing import NamedTuple
 import imageio
 import numpy as np
 import pygame
+from pygame._sdl2 import controller as gamecontroller
 import torch
 import yaml
 
@@ -24,12 +25,20 @@ class CTSPolicyInputs(NamedTuple):
     single_obs: torch.Tensor
 
 
+class GamepadInput(NamedTuple):
+    device: object
+    standardized: bool
+
+
 def load_config(config_name: str):
     with (CONFIG_DIR / config_name).open("r", encoding="utf-8") as file:
         raw = yaml.safe_load(file)
 
-    def path_value(name: str) -> Path:
-        return Path(raw[name].replace("{ROOT_DIR}", str(ROOT_DIR)))
+    def path_value(name: str) -> Path | None:
+        value = raw.get(name)
+        if value is None:
+            return None
+        return Path(value.replace("{ROOT_DIR}", str(ROOT_DIR)))
 
     data = {
         "policy_path": path_value("policy_path"),
@@ -106,18 +115,36 @@ def pd_control(target_q: np.ndarray, q: np.ndarray, kp: np.ndarray,
 
 def init_joystick():
     pygame.init()
+    gamecontroller.init()
     if pygame.joystick.get_count() == 0:
         print("No Joystick detected. Using default commands from config.")
         return None
+
+    if gamecontroller.is_controller(0):
+        controller = gamecontroller.Controller(0)
+        print(f"Detected SDL game controller: {controller.name}")
+        return GamepadInput(controller, standardized=True)
+
     joystick = pygame.joystick.Joystick(0)
     joystick.init()
     print(f"Detected Joystick: {joystick.get_name()}")
-    return joystick
+    return GamepadInput(joystick, standardized=False)
 
 
-def read_joystick_command(joystick, max_cmd: np.ndarray) -> np.ndarray:
+def read_joystick_command(joystick: GamepadInput, max_cmd: np.ndarray) -> np.ndarray:
     pygame.event.pump()
-    axes = np.array([joystick.get_axis(i) for i in (0, 1, 3)], dtype=np.float32)
+    if joystick.standardized:
+        axes = np.array(
+            [
+                joystick.device.get_axis(pygame.CONTROLLER_AXIS_LEFTX),
+                joystick.device.get_axis(pygame.CONTROLLER_AXIS_LEFTY),
+                joystick.device.get_axis(pygame.CONTROLLER_AXIS_RIGHTX),
+            ],
+            dtype=np.float32,
+        ) / 32768.0
+    else:
+        # Raw joystick fallback follows the common Xbox layout.
+        axes = np.array([joystick.device.get_axis(i) for i in (0, 1, 3)], dtype=np.float32)
     axes[np.abs(axes) < 0.1] = 0.0
     return np.array(
         [-axes[1] * max_cmd[0], -axes[0] * max_cmd[1], -axes[2] * max_cmd[2]],

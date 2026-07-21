@@ -1,4 +1,4 @@
-"""Run CTS DMBot policy deployment in MuJoCo with joystick command input."""
+"""Run CTS ToGo_LFs policy deployment in MuJoCo with joystick command input."""
 
 import argparse
 import tempfile
@@ -10,7 +10,7 @@ import mujoco.viewer
 import numpy as np
 import torch
 
-from dmbot_scene import build_dmbot_scene_xml
+from dmbot_scene import build_scene_with_training_terrain_xml
 from utils import (
     build_delay_buffers,
     display_current_command,
@@ -27,7 +27,7 @@ from utils import (
 )
 
 
-CONFIG_NAME = "dmbot.yaml"
+CONFIG_NAME = "togo_lfs.yaml"
 VIDEO_DIR = Path(__file__).with_name("videos")
 ACTUATOR_GROUPS = (
     np.array([0, 3, 6, 9], dtype=np.int64),
@@ -61,12 +61,17 @@ def build_single_obs(features: dict[str, np.ndarray], layout: list[tuple[str, in
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Deploy a DMBot TorchScript policy in MuJoCo.")
+    parser = argparse.ArgumentParser(description="Deploy a ToGo_LFs TorchScript policy in MuJoCo.")
+    parser.add_argument(
+        "--config",
+        default=CONFIG_NAME,
+        help="Config file under deploy/deploy_mujoco/configs (default: togo_lfs.yaml).",
+    )
     parser.add_argument(
         "--policy-path",
         type=Path,
         default=None,
-        help="Optional TorchScript policy path. Overrides policy_path in configs/dmbot.yaml.",
+        help="Optional TorchScript policy path. Overrides policy_path in configs/togo_lfs.yaml.",
     )
     parser.add_argument(
         "--latest-exported-policy",
@@ -77,11 +82,11 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
-    """Run MuJoCo simulation and deploy the CTS policy in closed-loop control."""
+    """Run MuJoCo simulation and deploy the ToGo_LFs CTS policy in closed-loop control."""
     args = parse_args()
     if args.policy_path is not None and args.latest_exported_policy:
         raise ValueError("Use either --policy-path or --latest-exported-policy, not both.")
-    cfg = load_config(CONFIG_NAME)
+    cfg = load_config(args.config)
     if args.policy_path is not None:
         cfg.policy_path = args.policy_path.expanduser().resolve()
     elif args.latest_exported_policy:
@@ -91,6 +96,11 @@ def main() -> None:
             raise FileNotFoundError("No exported policy found under logs/rsl_rl.")
         cfg.policy_path = max(candidates, key=lambda path: path.stat().st_mtime)
         print(f"Using latest exported policy: {cfg.policy_path}")
+    if cfg.policy_path is None:
+        raise ValueError(
+            "The default ToGo_LFs asset now uses the new hip-pitch convention. "
+            "Pass --policy-path with a policy trained on ToGo_LFs_v0p1_new."
+        )
     layout = [
         ("ang_vel", 3),
         ("gravity", 3),
@@ -103,8 +113,11 @@ def main() -> None:
     cmd = cfg.cmd_init.copy()
     display_current_command(cmd)
 
-    scene_xml = Path(tempfile.gettempdir()) / "robotlab_dmbot_mujoco_scene.xml"
-    build_dmbot_scene_xml(cfg.xml_path, scene_xml, terrain_profile=cfg.terrain_profile)
+    if cfg.terrain_profile == "flat":
+        scene_xml = cfg.xml_path
+    else:
+        scene_xml = Path(tempfile.gettempdir()) / "robotlab_togo_lfs_mujoco_scene.xml"
+        build_scene_with_training_terrain_xml(cfg.xml_path, scene_xml, terrain_profile=cfg.terrain_profile)
 
     model = mujoco.MjModel.from_xml_path(str(scene_xml))
     data = mujoco.MjData(model)

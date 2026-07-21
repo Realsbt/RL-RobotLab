@@ -1,0 +1,43 @@
+<mujoco model='XtellarRobotics/ToGo_LFs_v0p1_prototype/empty'>
+    <option timestep='0.001' tolerance='1e-10' solver='Newton' jacobian='dense' cone='pyramidal' gravity='0 0 -9.81' integrator='RK4'>
+        <flag contact='enable' energy='enable' gravity='enable' />
+    </option>
+
+    <statistic center="-0.7 -0.7 1.3" extent="1" meansize='1' />
+    <visual>
+        <global azimuth="45" elevation="-40" />
+        <scale
+            framelength='0.1' framewidth='0.001'
+            jointlength='0.25' jointwidth='0.002'
+            actuatorlength='0.15' actuatorwidth='0.004'
+            forcewidth='0.01' contactwidth='0.03' contactheight='0.002'
+            selectpoint='0.02' constraint='0.01'
+        />
+        <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
+        <rgba haze="0.15 0.25 0.35 1"/>
+    </visual>
+
+    <default>
+        <light castshadow='false' />
+    </default>
+
+    <asset>
+        <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
+        <texture
+            type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"
+            markrgb="0.8 0.8 0.8" width="300" height="300"/>
+        <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
+
+        <model name='togo' file='../../mujoco/ToGo_LFs_v0p1_prototype.xml' />
+    </asset>
+
+    <worldbody>
+        <light pos="0 0 5" dir="0 0 -1" directional="true" diffuse="0.2 0.2 0.2" specular="0.2 0.2 0.2"/>
+        <geom name="floor" size="0 0 1" pos="0 0 0" type="plane" material="groundplane"/>
+
+        <body name='F_floating_base' pos='0 0 0.078' euler='0 0 0'>
+            <freejoint name="J_floating_base" />
+            <attach model='togo' body='F_base' prefix='' />
+        </body>
+    </worldbody>
+</mujoco>

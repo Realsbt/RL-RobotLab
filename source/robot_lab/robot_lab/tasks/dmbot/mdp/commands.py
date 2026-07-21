@@ -73,6 +73,7 @@ class Go2RLGymCommand(CommandTerm):
         self.robot: Articulation = env.scene[cfg.asset_name]
         self.zero_command_prob = 0
         self.max_command_x = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
+        self._last_command_range_log_iter = -1
 
         self.cfg.command_range_curriculum = sorted(self.cfg.command_range_curriculum, key=lambda x: x['iter'], reverse=True)
 
@@ -124,9 +125,64 @@ class Go2RLGymCommand(CommandTerm):
         env = self._env
         if len(env_ids) == 0:
             return
-        # update command curriculum with train steps
-        if len(self.cfg.command_range_curriculum):
-            current_iter = env.common_step_counter // self.cfg.num_steps_per_iter
+        # Update command curriculum with training iterations before sampling a
+        # new command.  The smooth curriculum is preferred; the list-based
+        # version remains as a backwards-compatible fallback for old configs.
+        current_iter = env.common_step_counter // self.cfg.num_steps_per_iter
+        if self.cfg.smooth_command_range_curriculum is not None:
+            curriculum_cfg = self.cfg.smooth_command_range_curriculum
+            nodes = curriculum_cfg["nodes"]
+            if len(nodes) < 2 or nodes[0]["iter"] != 0:
+                raise ValueError("smooth command curriculum requires at least two nodes starting at iteration 0")
+
+            if current_iter >= nodes[-1]["iter"]:
+                # Keep the final command envelope after the last anchor.
+                start_node = end_node = nodes[-1]
+                progress = 1.0
+            else:
+                start_node = nodes[0]
+                end_node = nodes[-1]
+                for candidate_end_node in nodes[1:]:
+                    if candidate_end_node["iter"] <= start_node["iter"]:
+                        raise ValueError("smooth command curriculum node iterations must be strictly increasing")
+                    if current_iter <= candidate_end_node["iter"]:
+                        end_node = candidate_end_node
+                        break
+                    start_node = candidate_end_node
+
+                segment_length = end_node["iter"] - start_node["iter"]
+                progress = min(1.0, max(0.0, (current_iter - start_node["iter"]) / segment_length))
+            # Quintic smoothstep: zero velocity and acceleration at both
+            # endpoints, avoiding abrupt changes to the command distribution.
+            eased_progress = progress**3 * (progress * (progress * 6.0 - 15.0) + 10.0)
+            start_ranges = start_node["ranges"]
+            target_ranges = end_node["ranges"]
+            ranges = {
+                name: [
+                    start_ranges[name][0] + (target_ranges[name][0] - start_ranges[name][0]) * eased_progress,
+                    start_ranges[name][1] + (target_ranges[name][1] - start_ranges[name][1]) * eased_progress,
+                ]
+                for name in ("lin_vel_x", "lin_vel_y", "ang_vel_yaw")
+            }
+            if ranges != self.command_ranges:
+                self.command_ranges = ranges
+                self.max_lin_vel = max(
+                    abs(ranges["lin_vel_x"][0]), abs(ranges["lin_vel_x"][1]),
+                    abs(ranges["lin_vel_y"][0]), abs(ranges["lin_vel_y"][1]),
+                )
+                self._update_env_command_ranges()
+
+            if (
+                self._last_command_range_log_iter < 0
+                or current_iter - self._last_command_range_log_iter >= curriculum_cfg["log_interval"]
+            ):
+                print(
+                    f"Smooth command range at iter {current_iter} "
+                    f"(segment={start_node['iter']}-{end_node['iter']}, progress={progress:.3f}): "
+                    f"{self.command_ranges}"
+                )
+                self._last_command_range_log_iter = current_iter
+        elif len(self.cfg.command_range_curriculum):
             for i in range(len(self.cfg.command_range_curriculum)-1, -1, -1):  # iterate backwards to be able to pop entries
                 cfg = self.cfg.command_range_curriculum[i]
                 if current_iter >= cfg["iter"]:
@@ -362,32 +418,59 @@ class Go2RLGymCommandCfg(CommandTermCfg):
     limit_vel_invert_when_continuous: bool = True
     """Invert the limit logic when using continuous sample limit velocity commands"""
 
-    zero_command_curriculum: dict = {'start_iter': 0, 'end_iter': 1500, 'start_value': 0.0, 'end_value': 0.1}
+    zero_command_curriculum: dict = {'start_iter': 0, 'end_iter': 1500, 'start_value': 0.0, 'end_value': 0.15}
     """Start training with zero commands and then gradually increase zero command probability"""
     limit_vel: dict = {"lin_vel_x": [-1, 1], "lin_vel_y": [-1, 1], "ang_vel_yaw": [-1, 0, 1]}
     """Sample vel commands from min [-1] or zero [0] or max [1] range only"""
-    command_range_curriculum: list[dict] = [{
-        'iter': 20000, # training iteration at which the command ranges are updated
-        'lin_vel_x': [-0.75, 0.75], # min max [m/s]
-        'lin_vel_y': [-0.75, 0.75], # min max [m/s]
-        'ang_vel_yaw': [-1.25, 1.25], # min max [rad/s]
-    }, {
-        'iter': 35000, # training iteration at which the command ranges are updated
-        'lin_vel_x': [-1.0, 1.0], # min max [m/s]
-        'lin_vel_y': [-1.0, 1.0], # min max [m/s]
-        'ang_vel_yaw': [-1.5, 1.5], # min max [rad/s]
-    }, {
-        'iter': 60000, # training iteration at which the command ranges are updated
-        'lin_vel_x': [-1.5, 1.5], # min max [m/s]
-        'lin_vel_y': [-1.0, 1.0], # min max [m/s]
-        'ang_vel_yaw': [-1.75, 1.75], # min max [rad/s]
-    }, {
-        'iter': 100000, # training iteration at which the command ranges are updated
-        'lin_vel_x': [-2.0, 2.0], # min max [m/s]
-        'lin_vel_y': [-1.0, 1.0], # min max [m/s]
-        'ang_vel_yaw': [-2.0, 2.0], # min max [rad/s]
-    }]
-    """List for command range curriculums at specific training iterations"""
+    smooth_command_range_curriculum: dict | None = {
+        "nodes": [
+            {
+                "iter": 0,
+                "ranges": {
+                    "lin_vel_x": [-0.5, 0.5],
+                    "lin_vel_y": [-0.5, 0.5],
+                    "ang_vel_yaw": [-1.0, 1.0],
+                },
+            },
+            {
+                "iter": 20000,
+                "ranges": {
+                    "lin_vel_x": [-0.75, 0.75],
+                    "lin_vel_y": [-0.75, 0.75],
+                    "ang_vel_yaw": [-1.25, 1.25],
+                },
+            },
+            {
+                "iter": 35000,
+                "ranges": {
+                    "lin_vel_x": [-1.0, 1.0],
+                    "lin_vel_y": [-1.0, 1.0],
+                    "ang_vel_yaw": [-1.5, 1.5],
+                },
+            },
+            {
+                "iter": 60000,
+                "ranges": {
+                    "lin_vel_x": [-1.5, 1.5],
+                    "lin_vel_y": [-1.0, 1.0],
+                    "ang_vel_yaw": [-1.75, 1.75],
+                },
+            },
+            {
+                "iter": 100000,
+                "ranges": {
+                    "lin_vel_x": [-2.0, 2.0],
+                    "lin_vel_y": [-1.0, 1.0],
+                    "ang_vel_yaw": [-2.0, 2.0],
+                },
+            },
+        ],
+        "log_interval": 1000,
+    }
+    """Continuously ease between the original command-range nodes with a quintic smoothstep curve."""
+
+    command_range_curriculum: list[dict] = []
+    """Legacy discrete command curriculum, used only when the smooth curriculum is disabled."""
     terrain_max_command_ranges: dict[str, dict] = {
         #### go2 terrains ####
         'wave':

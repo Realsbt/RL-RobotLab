@@ -4,6 +4,8 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 import mujoco
+import numpy as np
+import pygame
 import yaml
 
 
@@ -108,6 +110,56 @@ def test_dmbot_deploy_config_matches_mjcf_joint_order():
         1.0,
         1.5,
     ]
+
+
+def test_togo_lfs_deploy_defaults_to_new_asset_and_requires_external_policy():
+    cfg_path = DEPLOY_DIR / "configs" / "togo_lfs.yaml"
+    cfg = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
+    xml_path = Path(cfg["xml_path"].replace("{ROOT_DIR}", str(ROOT_DIR)))
+
+    assert cfg["policy_path"] is None
+    assert "ToGo_LFs_v0p1_new" in cfg["xml_path"]
+    assert cfg["default_angles"] == [
+        0.0,
+        -0.6,
+        1.0,
+        0.0,
+        0.6,
+        -1.0,
+        0.0,
+        -0.6,
+        1.0,
+        0.0,
+        0.6,
+        -1.0,
+    ]
+
+    model = mujoco.MjModel.from_xml_path(str(xml_path))
+    assert model.njnt == 13
+    assert model.nu == 12
+    assert all(value == 0.007 for value in model.dof_damping[6:])
+    assert all(value == 0.194 for value in model.dof_frictionloss[6:])
+
+
+def test_standard_gamepad_uses_right_stick_x_for_yaw(monkeypatch):
+    from utils import GamepadInput, read_joystick_command
+
+    class FakeController:
+        axes = {
+            pygame.CONTROLLER_AXIS_LEFTX: 0,
+            pygame.CONTROLLER_AXIS_LEFTY: 0,
+            pygame.CONTROLLER_AXIS_RIGHTX: 16384,
+            pygame.CONTROLLER_AXIS_RIGHTY: -32768,
+        }
+
+        def get_axis(self, axis):
+            return self.axes[axis]
+
+    monkeypatch.setattr(pygame.event, "pump", lambda: None)
+    gamepad = GamepadInput(FakeController(), standardized=True)
+    command = read_joystick_command(gamepad, np.array([2.0, 1.0, 2.0], dtype=np.float32))
+
+    np.testing.assert_allclose(command, [0.0, 0.0, -1.0])
 
 
 def test_dmbot_scene_builder_adds_freejoint_and_floor(tmp_path):
