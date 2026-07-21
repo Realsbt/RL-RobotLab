@@ -1,0 +1,108 @@
+# Ordinary-PPO ToGo_LFs backflip sim2sim configuration.
+#
+# The default model and exported policies live inside this repository. Paths
+# can still be overridden with the corresponding command-line arguments.
+policy_path: "{ROOT_DIR}/deploy/pre_train/togo_lfs/backflip_r10j/policy.pt"
+locomotion_policy_path: "{ROOT_DIR}/deploy/pre_train/togo_lfs/locomotion_latency_50000/policy.pt"
+xml_path: "{ROOT_DIR}/resources/Robots/xtellar/ToGo_LFs_v0p1_new/simenv/mujoco/empty.xml"
+
+simulation_dt: 0.005
+control_decimation: 4
+skill_duration: 3.0
+# A visual-only stand period.  The policy clock and action history remain at
+# zero until it ends.  Use --stand-time 0 for the closest training reset.
+stand_time: 0.5
+real_time: true
+
+base_init_pos: [0.0, 0.0, 0.30]
+base_init_quat: [1.0, 0.0, 0.0, 0.0]
+default_angles: [
+  0.0, -0.6,  1.0,
+  0.0,  0.6, -1.0,
+  0.0, -0.6,  1.0,
+  0.0,  0.6, -1.0,
+]
+
+num_actions: 12
+num_observations: 60
+action_scale: 0.5
+angular_velocity_scale: 0.25
+joint_velocity_scale: 0.05
+phase_episode_length: 2.0
+phase_cycles: 0.5
+
+kps: [40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0]
+kds: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+effort_limit: 48.0
+saturation_effort: 48.0
+velocity_limit: 28.064894
+
+# Absolute joint-position target limits, matching the 95% Isaac Lab clips.
+joint_target_lower: [
+  -0.4145, -1.8239,  0.0,
+  -0.4145, -1.8239, -1.6581,
+  -0.4145, -1.8239,  0.0,
+  -0.4145, -1.8239, -1.6581,
+]
+joint_target_upper: [
+   0.4145,  1.8239,  1.6581,
+   0.4145,  1.8239,  0.0,
+   0.4145,  1.8239,  1.6581,
+   0.4145,  1.8239,  0.0,
+]
+
+# The selected Isaac Lab task has self-collision disabled.  Robot-floor
+# collision remains active, with friction matched to the training plane.
+disable_self_collisions: true
+# MuJoCo has one sliding coefficient whereas the training scene uses PhysX's
+# static/dynamic material pair and its own contact solver.  A deterministic
+# sweep selected 0.75: it reproduces the Isaac touchdown rotation and clean
+# four-foot final support; 0.80 and above caused the rear knees to stick down.
+contact_friction: 0.75
+contact_force_threshold: 2.0
+
+# RobotLab-ToGo-LFs-Backflip-Genesis-Land-Assisted-v0 terminal transform.
+assisted_landing: true
+minimum_front_blend_rotation: 4.775220833456485  # 1.52*pi
+full_front_blend_rotation: 5.497787143782138     # 1.75*pi
+minimum_landing_rotation: 4.71238898038469       # 1.50*pi
+front_target_offsets: [0.0, -0.45, -0.40, 0.0, 0.45, 0.40]
+post_touchdown_target_offsets: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+post_touchdown_blend_duration: 0.30
+
+joint_names: [
+  Jfl1_hipr, Jfl2_hipp, Jfl3_knee,
+  Jfr1_hipr, Jfr2_hipp, Jfr3_knee,
+  Jrl1_hipr, Jrl2_hipp, Jrl3_knee,
+  Jrr1_hipr, Jrr2_hipp, Jrr3_knee,
+]
+foot_body_names: [Lfl4_foot, Lfr4_foot, Lrl4_foot, Lrr4_foot]
+
+# Backflip -> CTS locomotion handoff. The CTS TorchScript accepts one 45-D
+# frame and maintains its own term-major 10-frame history.
+locomotion_num_observations: 45
+locomotion_action_scale: 0.25
+locomotion_command_scale: [1.0, 1.0, 1.0]
+locomotion_max_command: [2.0, 1.0, 2.0]
+locomotion_history_prime_steps: 10
+locomotion_target_blend_duration: 0.40
+locomotion_zero_command_hold: 0.50
+headless_locomotion_test_duration: 2.0
+
+# The switch depends on current conditions holding continuously; it never uses
+# the latched landing_success flag by itself.
+handoff_required_stable_time: 0.30
+handoff_minimum_contact_feet: 3
+handoff_minimum_upright: 0.9659258262890683  # cos(15 deg)
+handoff_maximum_linear_speed: 0.30
+handoff_maximum_angular_speed: 1.00
+handoff_maximum_joint_pose_rms: 0.35
+
+# Re-triggering from locomotion first zeros the command and waits for a stricter
+# stationary state.
+preflip_required_stable_time: 0.30
+preflip_minimum_contact_feet: 3
+preflip_minimum_upright: 0.984807753012208   # cos(10 deg)
+preflip_maximum_linear_speed: 0.20
+preflip_maximum_angular_speed: 0.50
+preflip_maximum_joint_pose_rms: 0.35
