@@ -1,4 +1,5 @@
 from pathlib import Path
+import hashlib
 import sys
 import xml.etree.ElementTree as ET
 import zipfile
@@ -112,12 +113,14 @@ def test_dmbot_deploy_config_matches_mjcf_joint_order():
     ]
 
 
-def test_togo_lfs_deploy_defaults_to_new_asset_and_requires_external_policy():
+def test_togo_lfs_deploy_defaults_to_new_asset_and_packaged_policy():
     cfg_path = DEPLOY_DIR / "configs" / "togo_lfs.yaml"
     cfg = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
+    policy_path = Path(cfg["policy_path"].replace("{ROOT_DIR}", str(ROOT_DIR)))
     xml_path = Path(cfg["xml_path"].replace("{ROOT_DIR}", str(ROOT_DIR)))
 
-    assert cfg["policy_path"] is None
+    assert policy_path.is_file()
+    assert _torchscript_data_sizes(policy_path)[0] == 45 * 10 * 4
     assert "ToGo_LFs_v0p1_new" in cfg["xml_path"]
     assert cfg["default_angles"] == [
         0.0,
@@ -139,6 +142,36 @@ def test_togo_lfs_deploy_defaults_to_new_asset_and_requires_external_policy():
     assert model.nu == 12
     assert all(value == 0.007 for value in model.dof_damping[6:])
     assert all(value == 0.194 for value in model.dof_frictionloss[6:])
+
+
+def test_togo_lfs_legacy_deploy_config_preserves_old_policy_asset_pair():
+    cfg_path = DEPLOY_DIR / "configs" / "togo_lfs_legacy.yaml"
+    cfg = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
+    policy_path = Path(cfg["policy_path"].replace("{ROOT_DIR}", str(ROOT_DIR)))
+
+    assert "ToGo_LFs_v0p1_prototype" in cfg["xml_path"]
+    assert cfg["policy_path"].endswith("locomotion_legacy_50000/policy.pt")
+    assert policy_path.is_file()
+    assert _torchscript_data_sizes(policy_path)[0] == 45 * 10 * 4
+    assert cfg["default_angles"][1::3] == [0.6, -0.6, 0.6, -0.6]
+
+
+def test_togo_lfs_packaged_policy_hashes():
+    expected = {
+        "locomotion_latency_50000/policy.pt": "304ee7cefd161e0d63cfa74a971bedc23f8dc6f04f9a44d67d22d8ccb55ba030",
+        "locomotion_latency_50000/policy.onnx": "e206127c4cd50c18876457010dd2666bd954036e9d34e7ce7c9beaf710bf01bc",
+        "quiet_beta_1p4_5000/policy.pt": "1371dab56f1eb897f2cf38da5f0ab692d42f590ec43724bb01cfde18eee4a8f7",
+        "quiet_beta_1p4_5000/policy.onnx": "5042c902f1123623cc3ec8fb9ba7d0d3cb32d84c00f47792d40f8cbcece07b3f",
+        "backflip_r10j/policy.pt": "5e79e346a9100d833b558efed9c9690c16ca9b4ce309b15b15e05215b2f30ac5",
+        "backflip_r10j/policy.onnx": "c804b55ea4b41732aaf4552b3d1cb09553115c61abde7369d8f99b66cde03615",
+        "locomotion_legacy_50000/policy.pt": "c487d46762fd120b8530e91258e93a081d176de1f22f0721df67baa6b76fb9c9",
+        "locomotion_legacy_50000/policy.onnx": "b45c580289082dc61222c7353e85518f3c2f35445ecd9062776f0365dbbe3f70",
+    }
+    root = ROOT_DIR / "deploy/pre_train/togo_lfs"
+
+    for relative_path, expected_digest in expected.items():
+        digest = hashlib.sha256((root / relative_path).read_bytes()).hexdigest()
+        assert digest == expected_digest
 
 
 def test_standard_gamepad_uses_right_stick_x_for_yaw(monkeypatch):

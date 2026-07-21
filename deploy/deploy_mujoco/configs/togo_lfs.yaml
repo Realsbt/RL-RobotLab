@@ -1,5 +1,5 @@
-# Supply a TorchScript policy with --policy-path or --latest-exported-policy.
-policy_path: null
+# Override with --policy-path or --latest-exported-policy when needed.
+policy_path: "{ROOT_DIR}/deploy/pre_train/togo_lfs/locomotion_latency_50000/policy.pt"
 xml_path: "{ROOT_DIR}/resources/Robots/xtellar/ToGo_LFs_v0p1_new/simenv/mujoco/empty.xml"
 terrain_profile: "training_mixed"
 
